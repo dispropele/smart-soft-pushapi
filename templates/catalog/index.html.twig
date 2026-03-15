@@ -1,0 +1,169 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Каталог товаров — СмартЛомбард{% endblock %}
+
+{% block body %}
+
+{# Заголовок + фильтры #}
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3
+            pb-3 border-b border-[#c8d7e1]">
+
+    <div>
+        <h1 class="text-lg font-semibold text-[#333]">
+            {% if search %}
+                Результаты поиска: <em class="text-[#2d6ca2]">«{{ search }}»</em>
+            {% else %}
+                Каталог товаров
+            {% endif %}
+        </h1>
+        <p class="text-xs text-gray-400 mt-0.5">
+            {% if total == 0 %}
+                Ничего не найдено
+            {% elseif total == 1 %}
+                1 товар
+            {% elseif total < 5 %}
+                {{ total }} товара
+            {% else %}
+                {{ total }} товаров
+            {% endif %}
+            {% if search %}
+                · <a href="{{ path('app_catalog') }}" class="text-[#2d6ca2] hover:underline">Сбросить</a>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+{# Пустой результат #}
+{% if goods is empty %}
+    <div class="py-20 text-center text-gray-400">
+        <svg class="w-14 h-14 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01
+                     M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        {% if search %}
+            <p class="text-lg">По запросу <strong>«{{ search }}»</strong> ничего не найдено</p>
+            <a href="{{ path('app_catalog') }}"
+               class="mt-4 inline-block text-[#2d6ca2] hover:underline text-sm">
+                ← Посмотреть все товары
+            </a>
+        {% else %}
+            <p class="text-lg">Витрина пока пуста</p>
+        {% endif %}
+    </div>
+
+{% else %}
+    {# Сетка карточек #}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {% for good in goods %}
+
+            {% set cover = null %}
+            {% for img in good.images %}
+                {% if img.isCover and cover is null %}{% set cover = img %}{% endif %}
+            {% endfor %}
+            {% if cover is null and good.images|length > 0 %}
+                {% set cover = good.images|first %}
+            {% endif %}
+
+            <div class="bg-white border border-[#c8d7e1] flex flex-col group
+                        hover:shadow-md hover:border-[#2d6ca2] transition-all duration-150"
+                 style="border-radius:2px">
+
+                {# Фото #}
+                <a href="{{ path('app_product_show', {id: good.id}) }}"
+                   class="block relative bg-[#f5f5f5] border-b border-gray-100 overflow-hidden"
+                   style="aspect-ratio:1/1">
+                    <img src="{{ cover ? cover.preview : '/img/no-photo.png' }}"
+                         alt="{{ good.name }}"
+                         class="w-full h-full object-contain p-2
+                                group-hover:scale-105 transition-transform duration-200"
+                         loading="lazy">
+                    <span class="absolute top-1.5 left-1.5 bg-white/80 text-[9px] text-gray-400
+                                 px-1.5 py-0.5 border border-gray-200 leading-none">
+                        #{{ good.id }}
+                    </span>
+                </a>
+
+                <div class="p-3 flex flex-col flex-grow">
+
+                    {# Название #}
+                    <a href="{{ path('app_product_show', {id: good.id}) }}"
+                       class="text-[13px] font-semibold text-[#2d6ca2] hover:underline
+                              leading-snug mb-2 overflow-hidden block"
+                       style="display:-webkit-box;-webkit-line-clamp:2;
+                              -webkit-box-orient:vertical;min-height:2.4rem">
+                        {{ good.name }}
+                    </a>
+
+                    {# Металл #}
+                    {% if good.metalStandard %}
+                        <div class="text-[10px] text-amber-700 bg-amber-50 border border-amber-200
+                                    px-2 py-0.5 mb-2 leading-none inline-block w-fit">
+                            {{ good.metalStandard.metal.name }} {{ good.metalStandard.name }}
+                        </div>
+                    {% endif %}
+
+                    {# Цена #}
+                    <div class="text-xl font-bold text-[#222] mt-auto mb-1">
+                        {{ good.soldPrice|number_format(0, '.', ' ') }}&thinsp;<span class="text-sm font-normal text-gray-400">{{ good.currency ? good.currency.currency : '₽' }}</span>
+                    </div>
+
+                    {# Город / филиал #}
+                    <div class="text-[11px] text-gray-400 mb-3 space-y-0.5
+                                pt-2 border-t border-dashed border-[#c8d7e1]">
+                        {% if good.merchant.city %}
+                            <div class="truncate">📍 {{ good.merchant.city.name }}</div>
+                        {% endif %}
+                        <div class="truncate">🏢 {{ good.merchant.name }}</div>
+                    </div>
+
+                    {# Кнопки #}
+                    <div class="flex gap-1.5">
+                        <a href="{{ path('app_product_show', {id: good.id}) }}"
+                           class="flex-1 text-center text-[11px] font-bold uppercase tracking-wide
+                                  py-1.5 border border-[#2d6ca2] text-[#2d6ca2]
+                                  hover:bg-[#2d6ca2] hover:text-white transition-colors"
+                           style="border-radius:2px">
+                            Детали
+                        </a>
+                        <button onclick="addToCart({{ good.id }}, this)"
+                                class="flex-1 text-[11px] font-bold uppercase tracking-wide
+                                       py-1.5 bg-[#60b060] hover:opacity-90 text-white
+                                       border-b-2 border-black/20 active:border-b-0 transition-all"
+                                style="border-radius:2px">
+                            В корзину
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# ── Пагинация ── #}
+    {% if pages > 1 %}
+        <div class="mt-8 flex justify-center gap-1 text-sm flex-wrap">
+            {% if page > 1 %}
+                <a href="{{ path('app_catalog', {page: page-1, sort: sort, q: search}) }}"
+                   class="px-3 py-1.5 border border-[#c8d7e1] bg-white hover:bg-gray-50 rounded-sm">‹</a>
+            {% endif %}
+
+            {% for p in 1..pages %}
+                {% if p == page %}
+                    <span class="px-3 py-1.5 bg-[#2d6ca2] text-white rounded-sm">{{ p }}</span>
+                {% elseif p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+                    <a href="{{ path('app_catalog', {page: p, sort: sort, q: search}) }}"
+                       class="px-3 py-1.5 border border-[#c8d7e1] bg-white hover:bg-gray-50 rounded-sm">{{ p }}</a>
+                {% elseif p == page - 3 or p == page + 3 %}
+                    <span class="px-2 py-1.5 text-gray-400">…</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if page < pages %}
+                <a href="{{ path('app_catalog', {page: page+1, sort: sort, q: search}) }}"
+                   class="px-3 py-1.5 border border-[#c8d7e1] bg-white hover:bg-gray-50 rounded-sm">›</a>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endif %}
+
+{% endblock %}

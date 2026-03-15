@@ -1,0 +1,43 @@
+security:
+    password_hashers:
+        App\Entity\Admin:
+            algorithm: bcrypt
+
+    providers:
+        admin_provider:
+            entity:
+                class: App\Entity\Admin
+                property: username
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        # Фаервол для админки — отдельный, со своей формой логина
+        admin:
+            pattern: ^/admin
+            lazy: true
+            provider: admin_provider
+            form_login:
+                login_path: admin_login
+                check_path: admin_login
+                default_target_path: admin
+                username_parameter: _username
+                password_parameter: _password
+                enable_csrf: true
+            logout:
+                path: admin_logout
+                target: admin_login
+
+        # Витрина — полностью публичная
+        main:
+            pattern: ^/
+            lazy: true
+            security: false
+
+    access_control:
+        # Страница логина — публичная
+        - { path: ^/admin/login, roles: PUBLIC_ACCESS }
+        # Всё остальное в /admin — только ROLE_ADMIN
+        - { path: ^/admin, roles: ROLE_ADMIN }

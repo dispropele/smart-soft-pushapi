@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Комиссионка Витрина{% endblock %}</title>
+    {% block stylesheets %}
+        {{ encore_entry_link_tags('app') }}
+        {{ importmap('app') }}
+    {% endblock %}
+</head>
+<body class="bg-[#f0f4f7] text-[#333]" style="font-family: Arial, Helvetica, sans-serif">
+
+{# Верхняя полоска #}
+<div class="h-1 bg-[#2d6ca2]"></div>
+
+{# Шапка #}
+<header class="bg-[#e1f0f5] border-b border-[#c8d7e1] py-3 px-4">
+    <div class="max-w-[1400px] mx-auto flex items-center gap-4">
+
+        {# Логотип #}
+        <a href="{{ path('app_catalog') }}" class="flex items-baseline gap-2 shrink-0">
+            <span class="text-2xl font-bold text-[#1d4e75] tracking-tight">Комиссионка</span>
+            <span class="text-xs text-gray-400 font-medium">Витрина</span>
+        </a>
+
+        {# Поиск #}
+        <form method="get" action="{{ path('app_catalog') }}"
+              class="flex-1 max-w-[500px] relative hidden md:block">
+            <input type="text"
+                   name="q"
+                   value="{{ app.request.query.get('q', '') }}"
+                   placeholder="Поиск по названию, филиалу, городу..."
+                   autocomplete="off"
+                   class="w-full bg-white border border-[#c8d7e1] rounded-sm px-4 py-1.5 text-sm
+                          focus:outline-none focus:ring-1 focus:ring-[#2d6ca2] placeholder-gray-400">
+            <button type="submit"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#2d6ca2]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </button>
+        </form>
+
+        <div class="ml-auto"></div>{# spacer #}
+
+        {# Корзина #}
+        <a href="{{ path('app_cart') }}"
+           id="cartBtn"
+           class="flex items-center gap-2 bg-[#2d6ca2] hover:bg-[#1d4e75] text-white
+                  text-sm font-bold px-4 py-2 rounded-sm transition-colors">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892
+                         C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553
+                         l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3z
+                         M16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z
+                         M6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
+            </svg>
+            Корзина
+            <span id="cartCount"
+                  class="bg-white text-[#2d6ca2] text-xs font-bold rounded-full
+                         w-5 h-5 flex items-center justify-center leading-none">0</span>
+        </a>
+    </div>
+</header>
+
+{# Навигация #}
+<nav class="bg-[#2d6ca2] border-b border-black/10 shadow">
+    <div class="max-w-[1400px] mx-auto flex text-sm">
+        <a href="{{ path('app_catalog') }}"
+           class="px-5 py-2.5 text-white font-medium border-r border-white/10 transition
+                  {{ app.request.attributes.get('_route') == 'app_catalog' ? 'bg-black/15' : 'hover:bg-black/10' }}">
+            Каталог товаров
+        </a>
+    </div>
+</nav>
+
+{# Мобильный поиск#}
+<div class="md:hidden bg-[#e1f0f5] border-b border-[#c8d7e1] px-4 py-2">
+    <form method="get" action="{{ path('app_catalog') }}" class="relative">
+        <input type="text" name="q"
+               value="{{ app.request.query.get('q', '') }}"
+               placeholder="Поиск..."
+               class="w-full bg-white border border-[#c8d7e1] rounded-sm px-3 py-1.5 text-sm
+                      focus:outline-none focus:ring-1 focus:ring-[#2d6ca2]">
+        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+        </button>
+    </form>
+</div>
+
+{# Контент #}
+<main class="max-w-[1400px] mx-auto px-4 py-6">
+    {% block body %}{% endblock %}
+</main>
+
+{# Футер #}
+<footer class="mt-8 py-6 border-t border-[#c8d7e1] text-center text-xs text-gray-400">
+    © {{ "now"|date("Y") }} Комиссионка PushAPI Интеграция.
+    <span class="mx-2">·</span>
+    <a href="/admin" class="hover:text-gray-600">Администраторам</a>
+</footer>
+
+{# Скрипт счётчика корзины #}
+<script>
+(function () {
+    // Обновить счётчик при загрузке
+    fetch('{{ path('app_cart_count') }}')
+        .then(r => r.json())
+        .then(d => setCount(d.count))
+        .catch(() => {});
+
+    function setCount(n) {
+        const el = document.getElementById('cartCount');
+        if (el) el.textContent = n;
+    }
+
+    // Глобальная функция добавления в корзину
+    window.addToCart = function (id, btn) {
+        fetch('/cart/add/' + id, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                setCount(d.count);
+                if (btn) {
+                    btn.textContent = '✓ В корзине';
+                    btn.classList.add('opacity-60');
+                    btn.disabled = true;
+                }
+            });
+    };
+})();
+</script>
+
+</body>
+</html>

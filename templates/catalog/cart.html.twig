@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Корзина - Комиссионка{% endblock %}
+
+{% block body %}
+
+<div class="mb-5 pb-3 border-b border-[#c8d7e1] flex items-center justify-between">
+    <h1 class="text-lg font-semibold">
+        Корзина
+        <span class="text-sm font-normal text-gray-400 ml-2">{{ goods|length }} поз.</span>
+    </h1>
+    <a href="{{ path('app_catalog') }}" class="text-sm text-[#2d6ca2] hover:underline">
+        ← Продолжить покупки
+    </a>
+</div>
+
+{% if goods is empty %}
+    <div class="py-20 text-center text-gray-400">
+        <svg class="w-14 h-14 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17
+                     m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        <p class="text-lg">Корзина пуста</p>
+        <a href="{{ path('app_catalog') }}"
+           class="mt-4 inline-block text-[#2d6ca2] hover:underline text-sm">
+            Перейти в каталог
+        </a>
+    </div>
+{% else %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {# Список товаров #}
+        <div class="lg:col-span-2 space-y-3">
+            {% for good in goods %}
+                {% set cover = null %}
+                {% for img in good.images %}
+                    {% if img.isCover and cover is null %}{% set cover = img %}{% endif %}
+                {% endfor %}
+                {% if cover is null and good.images|length > 0 %}
+                    {% set cover = good.images|first %}
+                {% endif %}
+
+                <div class="bg-white border border-[#c8d7e1] flex gap-4 p-3" style="border-radius:2px"
+                     id="cart-item-{{ good.id }}">
+
+                    <a href="{{ path('app_product_show', {id: good.id}) }}"
+                       class="shrink-0 w-20 h-20 border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden"
+                       style="border-radius:2px">
+                        <img src="{{ cover ? cover.preview : '/img/no-photo.png' }}"
+                             class="w-full h-full object-contain p-1">
+                    </a>
+
+                    <div class="flex-1 min-w-0">
+                        <a href="{{ path('app_product_show', {id: good.id}) }}"
+                           class="text-sm font-semibold text-[#2d6ca2] hover:underline leading-snug block truncate">
+                            {{ good.name }}
+                        </a>
+                        <div class="text-xs text-gray-400 mt-0.5">
+                            {{ good.merchant.name }}
+                            {% if good.merchant.city %} · {{ good.merchant.city.name }}{% endif %}
+                        </div>
+                        <div class="text-lg font-bold text-[#222] mt-1">
+                            {{ good.soldPrice|number_format(0, '.', ' ') }}&thinsp;<span class="text-sm font-normal text-gray-400">{{ good.currency ? good.currency.currency : '₽' }}</span>
+                        </div>
+                    </div>
+
+                    <button onclick="removeFromCart({{ good.id }})"
+                            class="shrink-0 text-gray-300 hover:text-red-400 transition-colors text-xl leading-none self-start pt-0.5">
+                        ×
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# Итог #}
+        <div>
+            <div class="bg-white border border-[#c8d7e1] p-5 sticky top-4" style="border-radius:2px">
+                <div class="font-semibold text-gray-700 mb-4 pb-2 border-b border-[#c8d7e1]">
+                    Итого
+                </div>
+                <div class="space-y-2 text-sm mb-4">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Позиций:</span>
+                        <span class="font-medium">{{ goods|length }}</span>
+                    </div>
+                    {% set total = 0 %}
+                    {% for g in goods %}{% set total = total + g.soldPrice %}{% endfor %}
+                    <div class="flex justify-between text-base font-bold border-t border-[#c8d7e1] pt-2 mt-2">
+                        <span>Сумма:</span>
+                        <span>{{ total|number_format(0, '.', ' ') }} ₽</span>
+                    </div>
+                </div>
+
+                <button class="w-full py-3 bg-[#60b060] text-white font-bold uppercase tracking-wide
+                               text-sm hover:opacity-90 transition border-b-2 border-black/20"
+                        style="border-radius:3px"
+                        onclick="alert('Для резервирования позвоните в выбранный филиал')">
+                    Оформить заявку
+                </button>
+                <p class="text-xs text-gray-400 text-center mt-2">
+                    Резервирование по звонку в филиал
+                </p>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<script>
+function removeFromCart(id) {
+    fetch('/cart/remove/' + id, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('cart-item-' + id)?.remove();
+            const el = document.getElementById('cartCount');
+            if (el) el.textContent = d.count;
+            if (d.count === 0) location.reload();
+        });
+}
+</script>
+
+{% endblock %}

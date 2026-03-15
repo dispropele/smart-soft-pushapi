@@ -1,0 +1,17 @@
+{% set cover = null %}
+{% for img in field.value %}
+    {% if img.isCover and cover is null %}
+        {% set cover = img %}
+    {% endif %}
+{% endfor %}
+{% if cover is null and field.value|length > 0 %}
+    {% set cover = field.value|first %}
+{% endif %}
+
+{% if cover %}
+    <img src="{{ cover.preview }}"
+         alt=""
+         style="width:52px;height:52px;object-fit:cover;border-radius:2px;border:1px solid #dde">
+{% else %}
+    <span style="color:#aaa;font-size:11px">нет фото</span>
+{% endif %}

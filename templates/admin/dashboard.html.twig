@@ -1,0 +1,71 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Сводка{% endblock %}
+
+{% block main %}
+<div style="max-width:860px">
+
+    <h2 style="font-size:1.1rem;font-weight:600;margin-bottom:1.5rem;
+               color:var(--color-text);border-bottom:1px solid var(--color-border);
+               padding-bottom:.75rem">
+        Панель управления витриной
+    </h2>
+
+    {# Карточки-счётчики #}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.75rem">
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\GoodCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-eye-slash" style="font-size:1.6rem;color:#f0ad4e;margin-bottom:.6rem"></i>
+            <span>Скрытые товары</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\MerchantCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-building" style="font-size:1.6rem;color:#337ab7;margin-bottom:.6rem"></i>
+            <span>Филиалы</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\PushApiLogCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-list-alt" style="font-size:1.6rem;color:#5bc0de;margin-bottom:.6rem"></i>
+            <span>Логи Push API</span>
+        </a>
+
+    </div>
+
+    {# Подсказка #}
+    <div style="background:var(--color-surface-2);border:1px solid var(--color-border);
+                border-radius:var(--border-radius);padding:1.1rem 1.25rem;
+                font-size:.84rem;color:var(--color-text-muted);line-height:1.75">
+        <strong style="color:var(--color-text)">Назначение разделов:</strong><br>
+        <strong>Товары</strong> — просмотр скрытых и проданных позиций, которые не отображаются на витрине.<br>
+        <strong>Филиалы</strong> — данные ломбардов, синхронизируемых через Push API.<br>
+        <strong>Логи Push API</strong> — история входящих вебхуков: статус авторизации, тип события, время и ошибки.<br><br>
+        Данные обновляются автоматически через <code style="background:var(--color-surface-3);
+            padding:.1em .4em;border-radius:3px;color:#e83e8c;font-size:.9em">POST /api/push</code>.
+    </div>
+</div>
+
+<style>
+.ea-dashboard-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.1rem 1.25rem;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    color: var(--color-text);
+    font-size: .85rem;
+    transition: border-color .15s, box-shadow .15s;
+}
+.ea-dashboard-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 8px var(--color-shadow);
+    color: var(--color-text);
+    text-decoration: none;
+}
+</style>
+{% endblock %}

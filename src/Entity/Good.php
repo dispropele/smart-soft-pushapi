@@ -10,6 +10,7 @@ use Doctrine\DBAL\Types\Types;
 
 #[ORM\Entity(repositoryClass: GoodRepository::class)]
 #[ORM\Table(name: 'goods')]
+#[ORM\HasLifecycleCallbacks]
 class Good
 {
     public const STATUS_ACTIVE    = 'active';
@@ -38,10 +39,6 @@ class Good
     #[ORM\ManyToOne(targetEntity: Category::class)]
     #[ORM\JoinColumn(name: 'category_id', nullable: true)]
     private ?Category $category = null;
-
-    #[ORM\ManyToOne(targetEntity: Category::class)]
-    #[ORM\JoinColumn(name: 'subcategory_id', nullable: true)]
-    private ?Category $subcategory = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $specification = null;
@@ -74,6 +71,13 @@ class Good
     public function __construct()
     {
         $this->images = new ArrayCollection();
+    }
+
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function refreshStatusDate(): void
+    {
+        $this->statusDate = new \DateTime();
     }
 
     public function __toString(): string
@@ -161,9 +165,6 @@ class Good
 
     public function getCategory(): ?Category { return $this->category; }
     public function setCategory(?Category $category): static { $this->category = $category; return $this; }
-
-    public function getSubcategory(): ?Category { return $this->subcategory; }
-    public function setSubcategory(?Category $subcategory): static { $this->subcategory = $subcategory; return $this; }
 
     public function getMetalStandard(): ?MetalStandard { return $this->metalStandard; }
     public function setMetalStandard(?MetalStandard $metalStandard): static { $this->metalStandard = $metalStandard; return $this; }

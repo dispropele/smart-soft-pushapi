@@ -4,146 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Вход — Администраторская панель</title>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
-
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: linear-gradient(135deg, #1d4e75 0%, #2d6ca2 60%, #3a85c0 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        .card {
-            background: #fff;
-            width: 100%;
-            max-width: 360px;
-            border-radius: 3px;
-            box-shadow: 0 12px 40px rgba(0,0,0,.3);
-            overflow: hidden;
-        }
-
-        .card-head {
-            background: #e1f0f5;
-            border-bottom: 3px solid #2d6ca2;
-            padding: 1.5rem 2rem 1.25rem;
-            text-align: center;
-        }
-        .card-head h1 { font-size: 1.35rem; font-weight: 700; color: #1d4e75; letter-spacing: -.5px }
-        .card-head p  { font-size: .78rem; color: #7a9fb5; margin-top: 3px }
-
-        .card-body { padding: 1.75rem 2rem }
-
-        .error {
-            background: #fdf3f3;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-            border-radius: 2px;
-            padding: .55rem .85rem;
-            font-size: .8rem;
-            margin-bottom: 1rem;
-        }
-
-        label {
-            display: block;
-            font-size: .75rem;
-            font-weight: 700;
-            color: #555;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-bottom: 4px;
-        }
-
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: .5rem .75rem;
-            border: 1px solid #c8d7e1;
-            border-radius: 2px;
-            font-size: .9rem;
-            color: #333;
-            outline: none;
-            transition: border-color .15s, box-shadow .15s;
-            margin-bottom: 1rem;
-        }
-        input:focus {
-            border-color: #2d6ca2;
-            box-shadow: 0 0 0 3px rgba(45,108,162,.15);
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: .65rem;
-            background: #60b060;
-            color: #fff;
-            font-weight: 700;
-            font-size: .875rem;
-            text-align: center;
-            border: none;
-            border-radius: 3px;
-            border-bottom: 2px solid rgba(0,0,0,.2);
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: .5px;
-            margin-top: .5rem;
-            transition: opacity .15s;
-        }
-        .btn:hover  { opacity: .92 }
-        .btn:active { border-bottom-width: 0; margin-top: calc(.5rem + 2px) }
-
-        .back {
-            display: block;
-            text-align: center;
-            margin-top: 1.1rem;
-            font-size: .78rem;
-            color: #7a9fb5;
-            text-decoration: none;
-        }
-        .back:hover { color: #2d6ca2; text-decoration: underline }
-
-        .card-foot {
-            background: #f8fbfd;
-            border-top: 1px solid #dce8f0;
-            padding: .65rem 2rem;
-            text-align: center;
-            font-size: .7rem;
-            color: #aab8c2;
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-<div class="card">
-    <div class="card-head">
-        <h1>Комиссионка</h1>
-        <p>Панель администратора</p>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans text-gray-900">
+<div class="bg-white w-full max-w-sm rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+    <div class="bg-gradient-to-r from-slate-900 to-slate-800 border-b border-yellow-500/20 p-6 text-center">
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-300 bg-clip-text text-transparent">АУРУМ Ломбард</h1>
+        <p class="text-sm text-gray-400 mt-1">Панель администратора</p>
     </div>
 
-    <div class="card-body">
+    <div class="p-6">
         {% if error %}
-            <div class="error">⚠ {{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm mb-5 font-medium">
+                ⚠ {{ error.messageKey|trans(error.messageData, 'security') }}
+            </div>
         {% endif %}
 
-        <form method="post" action="{{ path('admin_login') }}">
-            <label for="username">Логин</label>
-            <input type="text" id="username" name="_username"
-                   value="{{ last_username }}" autocomplete="username" autofocus>
+        <form method="post" action="{{ path('admin_login') }}" class="space-y-4">
+            <div>
+                <label for="username" class="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Логин</label>
+                <input type="text" id="username" name="_username" value="{{ last_username }}" autocomplete="username" autofocus
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition">
+            </div>
 
-            <label for="password">Пароль</label>
-            <input type="password" id="password" name="_password" autocomplete="current-password">
+            <div>
+                <label for="password" class="block text-sm font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Пароль</label>
+                <input type="password" id="password" name="_password" autocomplete="current-password"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition">
+            </div>
 
             <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
-            <button type="submit" class="btn">Войти</button>
+            <button type="submit" class="w-full mt-2 bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-md uppercase tracking-wide text-sm">
+                Войти
+            </button>
         </form>
 
-        <a href="{{ path('app_catalog') }}" class="back">← На витрину</a>
+        <a href="{{ path('app_catalog') }}" class="block text-center mt-6 text-sm text-gray-500 hover:text-yellow-600 transition font-medium">
+            ← На витрину
+        </a>
     </div>
 
-    <div class="card-foot">Только для авторизованных сотрудников</div>
+    <div class="bg-slate-50 border-t border-gray-100 p-4 text-center text-xs text-gray-400">
+        Только для авторизованных сотрудников
+    </div>
 </div>
 </body>
 </html>

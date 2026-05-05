@@ -3,26 +3,29 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Good;
-use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 
-class GoodCrudController extends AbstractCrudController
+/**
+ * Список "не активных" товаров (скрытые/проданные/изъятые).
+ */
+class HiddenGoodCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string
     {
@@ -33,15 +36,27 @@ class GoodCrudController extends AbstractCrudController
     {
         return $crud
             ->setEntityLabelInSingular('Товар')
-            ->setEntityLabelInPlural('Товары')
+            ->setEntityLabelInPlural('Скрытые и проданные товары')
             ->setDefaultSort(['statusDate' => 'DESC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
     }
 
+    /** Только не активные товары */
+    public function createIndexQueryBuilder(
+        SearchDto $searchDto,
+        EntityDto $entityDto,
+        FieldCollection $fields,
+        FilterCollection $filters
+    ): QueryBuilder {
+        return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
+            ->andWhere('entity.status != :activeStatus')
+            ->setParameter('activeStatus', Good::STATUS_ACTIVE);
+    }
+
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id', 'ID')->setMaxLength(10)->hideOnForm();
+        yield IdField::new('id', 'ID')->setMaxLength(10);
 
         yield Field::new('images', 'Фото')
             ->setTemplatePath('admin/field/good_cover.html.twig')
@@ -52,23 +67,9 @@ class GoodCrudController extends AbstractCrudController
 
         yield TextField::new('soldPrice', 'Цена')
             ->formatValue(fn ($v, $e) => $v
-                ? number_format((float)$v, 0, '.', ' ') . ' ' . ($e->getCurrency()?->getCurrency() ?? '₽')
+                ? number_format((float) $v, 0, '.', ' ') . ' ' . ($e->getCurrency()?->getCurrency() ?? '₽')
                 : '—'
-            )
-            ->hideOnForm();
-
-        yield MoneyField::new('soldPrice', 'Цена')
-            ->setCurrency('RUB')
-            ->setStoredAsCents(false)
-            ->onlyOnForms()
-            ->setFormTypeOptions([
-                'attr' => [
-                    'inputmode' => 'decimal',
-                    'pattern' => '[0-9]+([\\.,][0-9]{0,2})?',
-                    'step' => '0.01',
-                    'min' => 0,
-                ],
-            ]);
+            );
 
         yield TextField::new('merchant.name', 'Филиал')
             ->onlyOnIndex();
@@ -87,72 +88,28 @@ class GoodCrudController extends AbstractCrudController
                 Good::STATUS_ACTIVE    => '<span style="color:#5cb85c;font-weight:600">● Активно</span>',
                 default                => $v ?? '—',
             })
-            ->renderAsHtml()
-            ->hideOnForm();
-
-        yield ChoiceField::new('status', 'Статус')
-            ->onlyOnForms()
-            ->setChoices([
-                'Активно' => Good::STATUS_ACTIVE,
-                'Продано' => Good::STATUS_SOLD,
-                'Изъято'  => Good::STATUS_WITHDRAWN,
-                'Скрыто'  => Good::STATUS_HIDDEN,
-            ]);
+            ->renderAsHtml();
 
         yield TextField::new('hiddenReasonLabel', 'Причина скрытия')
             ->onlyOnDetail();
 
         yield DateTimeField::new('statusDate', 'Дата обновления')
-            ->setFormat('dd.MM.yyyy HH:mm')
-            ->hideOnForm();
+            ->setFormat('dd.MM.yyyy HH:mm');
 
         yield TextField::new('description', 'Описание')
             ->onlyOnDetail();
 
         yield TextField::new('specification', 'Спецификации')
             ->onlyOnDetail();
-
-        yield AssociationField::new('merchant', 'Филиал')
-            ->onlyOnForms();
-
-        yield AssociationField::new('category', 'Категория')
-            ->onlyOnForms();
-
-        yield TextareaField::new('description', 'Описание')
-            ->onlyOnForms()
-            ->setNumOfRows(6);
-
-        yield TextareaField::new('specification', 'Спецификации')
-            ->onlyOnForms()
-            ->setNumOfRows(6);
-
-        yield TextField::new('size', 'Размер')
-            ->onlyOnForms();
     }
 
     public function configureActions(Actions $actions): Actions
     {
         return $actions
-            // NEW/EDIT уже есть по умолчанию, добавляем только DETAIL
-            ->add(Crud::PAGE_INDEX, Action::DETAIL);
-    }
-
-    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
-    {
-        if ($entityInstance instanceof Good) {
-            $entityInstance->setStatusDate(new \DateTime());
-        }
-
-        parent::persistEntity($entityManager, $entityInstance);
-    }
-
-    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
-    {
-        if ($entityInstance instanceof Good) {
-            $entityInstance->setStatusDate(new \DateTime());
-        }
-
-        parent::updateEntity($entityManager, $entityInstance);
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->remove(Crud::PAGE_INDEX, Action::NEW)
+            ->remove(Crud::PAGE_INDEX, Action::EDIT)
+            ->remove(Crud::PAGE_DETAIL, Action::EDIT);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -167,3 +124,4 @@ class GoodCrudController extends AbstractCrudController
             ]));
     }
 }
+

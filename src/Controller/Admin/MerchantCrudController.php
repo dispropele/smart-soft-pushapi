@@ -35,16 +35,22 @@ class MerchantCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id', 'ID')->setMaxLength(10);
+        yield IdField::new('id', 'ID')->setMaxLength(10)->hideOnForm();
         yield TextField::new('name', 'Название');
 
         yield TextField::new('city.name', 'Город')
             ->onlyOnIndex();
 
-        yield AssociationField::new('city', 'Город')
-            ->onlyOnDetail();
+        yield AssociationField::new('city', 'Город');
 
-        yield TextField::new('phone', 'Телефон');
+        yield TextField::new('phone', 'Телефон')
+            ->setFormTypeOptions([
+                'attr' => [
+                    'inputmode' => 'numeric',
+                    'pattern' => '[0-9]*',
+                    'autocomplete' => 'off',
+                ],
+            ]);
 
         yield TextField::new('address', 'Адрес')
             ->onlyOnDetail();
@@ -53,7 +59,6 @@ class MerchantCrudController extends AbstractCrudController
             ->onlyOnDetail();
 
         yield TextareaField::new('description', 'Описание')
-            ->onlyOnDetail()
             ->setNumOfRows(4);
 
         if ($pageName !== Crud::PAGE_EDIT && $pageName !== Crud::PAGE_NEW) {
@@ -61,15 +66,19 @@ class MerchantCrudController extends AbstractCrudController
                 ->setTemplatePath('admin/field/merchant_logo.html.twig')
                 ->setSortable(false);
         }
+
+        yield TextField::new('imageSrc', 'Логотип (полный, URL)')
+            ->onlyOnForms();
+
+        yield TextField::new('imagePreview', 'Логотип (превью, URL)')
+            ->onlyOnForms();
     }
 
     public function configureActions(Actions $actions): Actions
     {
         return $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->remove(Crud::PAGE_INDEX, Action::NEW)
-            ->remove(Crud::PAGE_INDEX, Action::EDIT)
-            ->remove(Crud::PAGE_DETAIL, Action::EDIT);
+            // NEW/EDIT уже есть по умолчанию, добавляем только DETAIL
+            ->add(Crud::PAGE_INDEX, Action::DETAIL);
     }
 
     public function configureFilters(Filters $filters): Filters

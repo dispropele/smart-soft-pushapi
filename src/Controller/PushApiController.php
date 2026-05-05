@@ -73,11 +73,11 @@ class PushApiController extends AbstractController
             );
             $handler->flush();
 
-            return new JsonResponse([[
+            return new JsonResponse([
                 'status'  => false,
                 'type'    => 'error',
                 'message' => $e->getMessage(),
-            ]]);
+            ]);
         }
     }
 }

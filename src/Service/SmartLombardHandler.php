@@ -185,7 +185,6 @@ class SmartLombardHandler
             $good->setDescription($data['features'] ?? null);
             $good->setSpecification($data['specifications'] ?? null);
             $good->setHiddenReason(isset($data['hidden_reason']) ? (int) $data['hidden_reason'] : null);
-            $good->setStatusDate(new \DateTime());
 
             $status = match (true) {
                 (bool) ($data['sold']      ?? false) => Good::STATUS_SOLD,
@@ -200,9 +199,7 @@ class SmartLombardHandler
                 $parentCategory = $this->findOrCreateCategory($data['category'], null);
                 $good->setCategory($parentCategory);
             }
-            if (!empty($data['subcategory'])) {
-                $good->setSubcategory($this->findOrCreateCategory($data['subcategory'], $parentCategory));
-            }
+            // подкатегорий больше нет — игнорируем поле subcategory
 
             // валюта
             if (!empty($data['currency'])) {

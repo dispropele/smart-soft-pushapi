@@ -1,200 +1,111 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ good.name }} — СмартЛомбард{% endblock %}
+{% block title %}{{ good.name }} — Аурум Ломбард{% endblock %}
 
 {% block body %}
-
 {# Хлебные крошки #}
-<nav class="text-xs text-gray-400 mb-5 flex items-center gap-1 flex-wrap">
+<nav class="text-xs text-[#7a9fb5] mb-6 flex items-center gap-2 flex-wrap">
     <a href="{{ path('app_catalog') }}" class="text-[#2d6ca2] hover:underline">Каталог</a>
     <span>›</span>
     {% if good.category %}
         <span>{{ good.category.name }}</span>
         <span>›</span>
     {% endif %}
-    <span class="text-gray-600 truncate">{{ good.name }}</span>
+    <span class="text-[#333] font-medium truncate">{{ good.name }}</span>
 </nav>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-    {# Галерея #}
-    <div>
-        <div class="border border-[#c8d7e1] bg-white overflow-hidden mb-3"
-             style="aspect-ratio:1/1;border-radius:2px">
+{# Сетка: 2 колонки (Фото слева, Инфо справа) #}
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    
+    {# Левая колонка: Галерея #}
+    <div class="lg:col-span-2 space-y-4">
+        {# Главное фото с жестким ограничением размеров #}
+        <div class="bg-white border border-[#c8d7e1] rounded-[3px] flex items-center justify-center overflow-hidden h-[400px] md:h-[500px] p-4 shadow-sm">
             {% set cover = null %}
-            {% for img in good.images %}
-                {% if img.isCover and cover is null %}{% set cover = img %}{% endif %}
-            {% endfor %}
-            {% if cover is null and good.images|length > 0 %}
-                {% set cover = good.images|first %}
-            {% endif %}
+            {% for img in good.images %}{% if img.isCover and cover is null %}{% set cover = img %}{% endif %}{% endfor %}
+            {% if cover is null and good.images|length > 0 %}{% set cover = good.images|first %}{% endif %}
 
-            <img id="mainImage"
-                 src="{{ cover ? cover.src : '/img/no-photo.png' }}"
-                 alt="{{ good.name }}"
-                 class="w-full h-full object-contain p-4">
+            <img id="mainImage" src="{{ cover ? cover.src : '/img/no-photo.png' }}" alt="{{ good.name }}" 
+                 class="max-w-full max-h-full object-contain">
         </div>
 
+        {# Миниатюры #}
         {% if good.images|length > 1 %}
-            <div class="flex gap-2 overflow-x-auto pb-1">
+            <div class="flex gap-2 overflow-x-auto pb-2">
                 {% for img in good.images %}
                     <button onclick="document.getElementById('mainImage').src='{{ img.src }}'"
-                            class="w-16 h-16 shrink-0 border-2 overflow-hidden
-                                   hover:border-[#2d6ca2] transition-colors
-                                   {{ img.isCover ? 'border-[#2d6ca2]' : 'border-[#c8d7e1]' }}"
-                            style="border-radius:2px">
+                            class="w-16 h-16 shrink-0 border border-[#c8d7e1] rounded-[2px] overflow-hidden hover:border-[#2d6ca2] transition-colors bg-white">
                         <img src="{{ img.preview }}" class="w-full h-full object-cover">
                     </button>
                 {% endfor %}
             </div>
         {% endif %}
-
-        {# Блок филиала #}
-        <div class="mt-4 border border-[#c8d7e1] bg-white p-4 text-sm" style="border-radius:2px">
-            <div class="font-semibold text-gray-700 mb-3 pb-2 border-b border-[#c8d7e1]">
-                🏢 Филиал
-            </div>
-            {% if good.merchant.imagePreview %}
-                <img src="{{ good.merchant.imagePreview }}" alt=""
-                     class="h-14 object-contain mb-3">
-            {% endif %}
-            <div class="font-bold text-[#2d6ca2]">{{ good.merchant.name }}</div>
-            {% if good.merchant.city %}
-                <div class="text-gray-400 text-xs mt-1">📍 {{ good.merchant.city.name }}</div>
-            {% endif %}
-            {% if good.merchant.address %}
-                <div class="text-gray-500 text-xs mt-0.5">{{ good.merchant.address }}</div>
-            {% endif %}
-            {% if good.merchant.phone %}
-                <div class="font-medium mt-2">
-                    📞 <a href="tel:{{ good.merchant.phone }}" class="hover:underline">
-                        {{ good.merchant.phone }}
-                    </a>
-                </div>
-            {% endif %}
-        </div>
     </div>
 
-    {# Описание#}
-    <div>
-        <div class="flex items-start justify-between gap-2 mb-1">
-            <span class="text-xs text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5">
-                Арт. {{ good.id }}
-            </span>
-            {% if good.status %}
-                <span class="text-xs px-2 py-0.5 border
-                    {{ good.status == 'sold'
-                       ? 'bg-red-50 text-red-600 border-red-200'
-                       : 'bg-green-50 text-green-700 border-green-200' }}">
-                    {{ good.status == 'sold' ? '● Продано' : '● В наличии' }}
-                </span>
-            {% endif %}
+    {# Правая колонка: Информация #}
+    <div class="lg:col-span-3">
+        <div class="mb-4">
+            <span class="text-xs text-[#7a9fb5] bg-[#e1f0f5] px-2 py-1 rounded-[2px]">Арт. {{ good.id }}</span>
         </div>
 
-        <h1 class="text-2xl font-bold text-[#222] mb-1 leading-tight">{{ good.name }}</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-[#1d4e75] mb-6 leading-tight">{{ good.name }}</h1>
 
-        {% if good.category %}
-            <div class="text-xs text-gray-400 uppercase tracking-wide mb-5">
-                {{ good.category.name }}{% if good.subcategory %} › {{ good.subcategory.name }}{% endif %}
+        {# Цена #}
+        <div class="bg-white border border-[#c8d7e1] rounded-[3px] p-6 mb-8 shadow-sm">
+            <div class="text-4xl font-bold text-[#333] mb-2">
+                {{ good.soldPrice|number_format(0, '.', ' ') }} <span class="text-xl font-normal text-[#7a9fb5]">{{ good.currency ? good.currency.currency : '₽' }}</span>
             </div>
-        {% endif %}
-
-        {# Ценовой блок #}
-        <div class="bg-gray-50 border border-[#c8d7e1] p-5 mb-6" style="border-radius:2px">
-            <div class="text-4xl font-bold text-[#222] mb-4">
-                {{ good.soldPrice|number_format(0, '.', ' ') }}&thinsp;<span class="text-xl font-normal text-gray-400">{{ good.currency ? good.currency.currency : '₽' }}</span>
-            </div>
-            <button id="cartBtnMain"
-                    onclick="addToCart({{ good.id }}, this)"
-                    class="w-full py-3 text-base uppercase tracking-wide font-bold text-white
-                           bg-[#60b060] hover:opacity-90 transition border-b-2 border-black/20
-                           active:border-b-0"
-                    style="border-radius:3px">
-                🛒 Добавить в корзину
-            </button>
-            <p class="text-xs text-gray-400 text-center mt-2">
-                Уточните условия резервирования по телефону
-            </p>
+            <p class="text-sm text-[#7a9fb5]">Уточняйте наличие и условия резервирования по телефону.</p>
         </div>
 
         {# Характеристики #}
-        <div class="border border-[#c8d7e1] overflow-hidden mb-5" style="border-radius:2px">
-            <div class="bg-gray-50 border-b border-[#c8d7e1] px-4 py-2 font-semibold text-sm text-gray-700">
-                Характеристики
-            </div>
+        <div class="bg-white border border-[#c8d7e1] rounded-[3px] mb-6 overflow-hidden shadow-sm">
+            <div class="bg-[#f8fbfd] border-b border-[#c8d7e1] px-5 py-3 font-bold text-[#1d4e75]">Характеристики</div>
             <table class="w-full text-sm">
                 <tbody>
                     {% if good.metalStandard %}
-                        <tr class="border-b border-[#c8d7e1]">
-                            <td class="px-4 py-2 text-gray-500 bg-gray-50/50 w-2/5">Металл / проба</td>
-                            <td class="px-4 py-2 text-amber-700 font-medium">
-                                {{ good.metalStandard.metal.name }} — {{ good.metalStandard.name }}
-                            </td>
+                        <tr class="border-b border-[#f0f4f8]">
+                            <td class="px-5 py-3 text-[#7a9fb5] w-1/3">Металл / проба</td>
+                            <td class="px-5 py-3 text-[#333] font-medium">{{ good.metalStandard.metal.name }} — {{ good.metalStandard.name }}</td>
                         </tr>
                     {% endif %}
                     {% if good.size %}
-                        <tr class="border-b border-[#c8d7e1]">
-                            <td class="px-4 py-2 text-gray-500 bg-gray-50/50">Размер</td>
-                            <td class="px-4 py-2">{{ good.size }}</td>
+                        <tr class="border-b border-[#f0f4f8]">
+                            <td class="px-5 py-3 text-[#7a9fb5]">Размер</td>
+                            <td class="px-5 py-3 text-[#333] font-medium">{{ good.size }}</td>
                         </tr>
                     {% endif %}
-                    <tr class="border-b border-[#c8d7e1]">
-                        <td class="px-4 py-2 text-gray-500 bg-gray-50/50">Филиал</td>
-                        <td class="px-4 py-2">{{ good.merchant.name }}</td>
+                    <tr class="border-b border-[#f0f4f8]">
+                        <td class="px-5 py-3 text-[#7a9fb5]">Филиал</td>
+                        <td class="px-5 py-3 text-[#333]">{{ good.merchant.name }}</td>
                     </tr>
                     {% if good.merchant.city %}
-                        <tr class="border-b border-[#c8d7e1]">
-                            <td class="px-4 py-2 text-gray-500 bg-gray-50/50">Город</td>
-                            <td class="px-4 py-2">{{ good.merchant.city.name }}</td>
+                        <tr class="border-b border-[#f0f4f8]">
+                            <td class="px-5 py-3 text-[#7a9fb5]">Город</td>
+                            <td class="px-5 py-3 text-[#333]">{{ good.merchant.city.name }}</td>
                         </tr>
                     {% endif %}
-                    {% if good.merchant.address %}
-                        <tr class="border-b border-[#c8d7e1]">
-                            <td class="px-4 py-2 text-gray-500 bg-gray-50/50">Адрес</td>
-                            <td class="px-4 py-2">{{ good.merchant.address }}</td>
-                        </tr>
-                    {% endif %}
-                    {% if good.statusDate %}
+                    {% if good.merchant.phone %}
                         <tr>
-                            <td class="px-4 py-2 text-gray-500 bg-gray-50/50">Дата обновления</td>
-                            <td class="px-4 py-2 text-gray-400 text-xs">
-                                {{ good.statusDate|date('d.m.Y H:i') }}
-                            </td>
+                            <td class="px-5 py-3 text-[#7a9fb5]">Телефон</td>
+                            <td class="px-5 py-3 font-bold text-[#2d6ca2]">{{ good.merchant.phone }}</td>
                         </tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
 
-        {% if good.specification %}
-            <div class="border border-[#c8d7e1] overflow-hidden mb-5" style="border-radius:2px">
-                <div class="bg-gray-50 border-b border-[#c8d7e1] px-4 py-2 font-semibold text-sm text-gray-700">
-                    Спецификация
-                </div>
-                <div class="px-4 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                    {{ good.specification }}
-                </div>
-            </div>
-        {% endif %}
-
+        {# Описание #}
         {% if good.description %}
-            <div class="border border-[#c8d7e1] overflow-hidden" style="border-radius:2px">
-                <div class="bg-gray-50 border-b border-[#c8d7e1] px-4 py-2 font-semibold text-sm text-gray-700">
-                    Описание
-                </div>
-                <div class="px-4 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                    {{ good.description }}
-                </div>
+            <div class="bg-white border border-[#c8d7e1] rounded-[3px] shadow-sm overflow-hidden">
+                <div class="bg-[#f8fbfd] border-b border-[#c8d7e1] px-5 py-3 font-bold text-[#1d4e75]">Описание</div>
+                <div class="px-5 py-4 text-sm text-[#555] leading-relaxed whitespace-pre-line">{{ good.description }}</div>
             </div>
         {% endif %}
     </div>
 </div>
 
 <div class="mt-8">
-    <a href="{{ path('app_catalog') }}"
-       class="inline-flex items-center gap-1.5 text-sm text-[#2d6ca2] hover:underline">
-        ← Вернуться в каталог
-    </a>
+    <a href="{{ path('app_catalog') }}" class="text-sm text-[#2d6ca2] hover:underline">← Вернуться в каталог</a>
 </div>
-
 {% endblock %}

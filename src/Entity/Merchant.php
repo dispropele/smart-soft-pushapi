@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'merchants')]
@@ -24,6 +25,7 @@ class Merchant
     private ?string $address = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Regex(pattern: '/^\d*$/', message: 'Допустимы только цифры')]
     private ?string $phone = null;
 
     #[ORM\Column(length: 255, nullable: true)]

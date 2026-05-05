@@ -48,4 +48,10 @@ class MetalStandard
 
         return $this;
     }
+
+    public function __toString(): string
+    {
+        $metalName = $this->metal ? $this->metal->getName() : '';
+        return trim($metalName . ' ' . ($this->name ?? ''));
+    }
 }

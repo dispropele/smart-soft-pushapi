@@ -1,0 +1,142 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Билет {{ ticket.ticketNumber }} — Аурум Ломбард{% endblock %}
+
+{% block body %}
+<div class="space-y-6 max-w-5xl mx-auto">
+    {# Шапка #}
+    <div class="flex items-center gap-3 mb-2">
+        <a href="{{ path('app_client_cabinet') }}" class="text-[#7a9fb5] hover:text-[#2d6ca2] transition inline-flex items-center gap-1 text-sm font-bold uppercase tracking-wide">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Назад в кабинет
+        </a>
+    </div>
+
+    <div class="border-b border-[#c8d7e1] pb-4">
+        <h1 class="text-2xl font-bold text-[#1d4e75]">Залоговый билет</h1>
+        <p class="text-[#333] mt-1 font-mono text-lg">{{ ticket.ticketNumber }}</p>
+    </div>
+
+    {# Инфо о билете #}
+    <div class="bg-white rounded-[3px] shadow-sm border border-[#c8d7e1] overflow-hidden">
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Статус</p>
+                    <div class="mt-2">
+                        {% if ticket.isOpen() %}
+                            <span class="inline-block bg-[#e1f0f5] text-[#1d4e75] px-3 py-1 rounded-[2px] text-xs font-bold border border-[#c8d7e1]">Активен</span>
+                        {% elseif ticket.isClosed() %}
+                            <span class="inline-block bg-gray-100 text-gray-600 px-3 py-1 rounded-[2px] text-xs font-bold border border-gray-200">Закрыт</span>
+                        {% else %}
+                            <span class="inline-block bg-[#fdf3f3] text-[#721c24] px-3 py-1 rounded-[2px] text-xs font-bold border border-[#f5c6cb]">Просрочен</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Сумма займа</p>
+                    <p class="text-3xl font-bold text-[#333] mt-1">{{ ticket.loanAmount }} ₽</p>
+                </div>
+            </div>
+
+            <div class="border-t border-[#e1f0f5] pt-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Процентная ставка</p>
+                        <p class="text-base font-bold text-[#333] mt-1">{{ ticket.interestRate ?? '—' }}{% if ticket.interestRate %} %{% endif %}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Выдан</p>
+                        <p class="text-base font-bold text-[#333] mt-1">{{ ticket.issuedAt|date('d.m.Y') }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Срок возврата</p>
+                        <p class="text-base font-bold text-[#333] mt-1">{{ ticket.returnDate|date('d.m.Y') }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Дней до срока</p>
+                        <p class="text-base font-bold mt-1">
+                            {% set daysLeft = ((ticket.returnDate.timestamp - 'now'|date('U')) / 86400)|round(0, 'ceil') %}
+                            {% if daysLeft > 7 %}
+                                <span class="text-[#60b060]">{{ daysLeft }}</span>
+                            {% elseif daysLeft > 0 %}
+                                <span class="text-orange-500">{{ daysLeft }}</span>
+                            {% else %}
+                                <span class="text-[#721c24]">{{ daysLeft }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {% if ticket.notes %}
+                <div class="mt-6 pt-6 border-t border-[#e1f0f5]">
+                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Примечания</p>
+                    <p class="text-[#555] mt-2 bg-[#f8fbfd] p-3 rounded-[2px] border border-[#c8d7e1] text-sm">{{ ticket.notes }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Вещи в залоге #}
+    <div class="bg-white rounded-[3px] shadow-sm border border-[#c8d7e1] overflow-hidden">
+        <div class="bg-[#f8fbfd] border-b border-[#c8d7e1] px-5 py-3 font-bold text-[#1d4e75] flex items-center gap-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" /></svg>
+            Заложенное имущество
+        </div>
+
+        <div class="p-5">
+            {% if ticket.loanedItems|length > 0 %}
+                <div class="space-y-4">
+                    {% for item in ticket.loanedItems %}
+                        <div class="border border-[#c8d7e1] rounded-[3px] p-5 bg-white shadow-sm">
+                            <h3 class="text-base font-bold text-[#1d4e75] mb-4">{{ item.name }}</h3>
+
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                {% if item.jewelryType %}
+                                    <div>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Тип</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.jewelryType }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if item.metal %}
+                                    <div>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Металл</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.metal }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if item.metalStandard %}
+                                    <div>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Проба</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.metalStandard }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if item.weight %}
+                                    <div>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вес</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.weight }} г</p>
+                                    </div>
+                                {% endif %}
+                                <div class="bg-[#e1f0f5] p-2 rounded-[2px] border border-[#c8d7e1] md:col-span-2">
+                                    <p class="text-xs font-bold text-[#1d4e75] uppercase tracking-wide">Оценка</p>
+                                    <p class="text-[#1d4e75] font-bold mt-0.5">{{ item.estimatedValue }} ₽</p>
+                                </div>
+                            </div>
+                            {% if item.description %}
+                                <div class="pt-3 border-t border-[#e1f0f5]">
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Описание</p>
+                                    <p class="text-[#555] text-sm mt-1">{{ item.description }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-[#7a9fb5] text-center py-4">Нет информации о заложенном имуществе</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Личный кабинет — Аурум Ломбард{% endblock %}
+
+{% block body %}
+{# Комментарий теперь внутри блока! #}
+<div class="space-y-6 max-w-5xl mx-auto">
+    {# Заголовок #}
+    <div class="flex justify-between items-center border-b border-[#c8d7e1] pb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-[#1d4e75]">Мой кабинет</h1>
+            <p class="text-sm text-[#7a9fb5] mt-1">Добро пожаловать, <span class="font-semibold text-[#333]">{{ client.fullName }}</span></p>
+        </div>
+    </div>
+
+    {# Карточка клиента #}
+    <div class="bg-white rounded-[3px] shadow-sm border border-[#c8d7e1] overflow-hidden">
+        <div class="bg-[#f8fbfd] border-b border-[#c8d7e1] px-5 py-3 font-bold text-[#1d4e75] flex items-center gap-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+            Информация о клиенте
+        </div>
+        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">ФИО</p>
+                <p class="text-base text-[#333] font-semibold mt-1">{{ client.fullName }}</p>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Номер паспорта</p>
+                <p class="text-base text-[#333] font-semibold mt-1">{{ client.passportNumber }}</p>
+            </div>
+            {% if client.phone %}
+                <div>
+                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Телефон</p>
+                    <p class="text-base text-[#333] font-semibold mt-1">{{ client.phone }}</p>
+                </div>
+            {% endif %}
+            {% if client.email %}
+                <div>
+                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Email</p>
+                    <p class="text-base text-[#333] font-semibold mt-1">{{ client.email }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Список билетов #}
+    <div class="bg-white rounded-[3px] shadow-sm border border-[#c8d7e1] overflow-hidden">
+        <div class="bg-[#f8fbfd] border-b border-[#c8d7e1] px-5 py-3 font-bold text-[#1d4e75] flex items-center gap-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" /></svg>
+            Активные залоговые билеты
+        </div>
+
+        <div class="p-5">
+            {% if openTickets|length > 0 %}
+                <div class="space-y-4">
+                    {% for ticket in openTickets %}
+                        <div class="border border-[#c8d7e1] rounded-[3px] p-5 hover:border-[#2d6ca2] transition bg-[#f8fbfd]">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex-1">
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Номер билета</p>
+                                    <p class="text-xl font-bold text-[#333] mt-1">
+                                        <a href="{{ path('app_client_ticket_detail', {ticketNumber: ticket.ticketNumber}) }}" class="text-[#2d6ca2] hover:underline transition">
+                                            {{ ticket.ticketNumber }}
+                                        </a>
+                                    </p>
+                                </div>
+                                <span class="inline-block bg-[#e1f0f5] text-[#1d4e75] text-xs font-bold px-3 py-1 rounded-[2px] border border-[#c8d7e1]">
+                                    Активен
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 pb-4 border-b border-[#c8d7e1]">
+                                <div>
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Сумма займа</p>
+                                    <p class="text-lg font-bold text-[#333] mt-1">{{ ticket.loanAmount }} ₽</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Процент</p>
+                                    <p class="text-base text-[#333] font-semibold mt-1">{{ ticket.interestRate ?? '—' }}{% if ticket.interestRate %} %{% endif %}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Выдан</p>
+                                    <p class="text-base text-[#333] mt-1">{{ ticket.issuedAt|date('d.m.Y') }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">До</p>
+                                    <p class="text-base font-semibold mt-1">
+                                        {% set daysLeft = ((ticket.returnDate.timestamp - 'now'|date('U')) / 86400)|round(0, 'ceil') %}
+                                        {% if daysLeft > 7 %}
+                                            <span class="text-[#333]">{{ ticket.returnDate|date('d.m.Y') }}</span>
+                                        {% elseif daysLeft > 0 %}
+                                            <span class="text-orange-600">{{ daysLeft }} дн.</span>
+                                        {% else %}
+                                            <span class="text-[#721c24]">Истёк</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {% if ticket.loanedItems|length > 0 %}
+                                <div>
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide mb-2">Заложено:</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        {% for item in ticket.loanedItems %}
+                                            <div class="bg-white border border-[#c8d7e1] rounded-[2px] px-3 py-2 text-sm shadow-sm">
+                                                <p class="font-medium text-[#333]">{{ item.name }}</p>
+                                                <p class="text-[#7a9fb5] text-xs font-bold mt-0.5">{{ item.estimatedValue }} ₽</p>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <div class="mt-4 pt-4 border-t border-[#c8d7e1]">
+                                <a href="{{ path('app_client_ticket_detail', {ticketNumber: ticket.ticketNumber}) }}" class="text-[#2d6ca2] hover:underline text-sm font-bold uppercase tracking-wide transition inline-flex items-center gap-1">
+                                    Подробнее
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-10">
+                    <p class="text-[#7a9fb5] text-base">У вас нет открытых залоговых билетов</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Кнопки действий #}
+    <div class="flex gap-4 pt-2">
+        <a href="{{ path('app_catalog') }}" class="flex-1 bg-white hover:bg-[#e1f0f5] text-[#1d4e75] font-bold py-2.5 px-4 rounded-[3px] transition text-center uppercase tracking-wide text-sm border border-[#c8d7e1]">
+            На витрину
+        </a>
+        <a href="{{ path('app_client_logout') }}" class="flex-1 bg-[#fdf3f3] hover:bg-[#f5c6cb] text-[#721c24] font-bold py-2.5 px-4 rounded-[3px] transition text-center uppercase tracking-wide text-sm border border-[#f5c6cb]">
+            Выход
+        </a>
+    </div>
+</div>
+{% endblock %}

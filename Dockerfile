@@ -11,7 +11,6 @@ RUN apk add --no-cache \
     libzip-dev \
     icu-dev \
     $PHPIZE_DEPS \
-    && docker-php-ext-configure zip --with-libzip \
     && docker-php-ext-install -j"$(nproc)" \
     pdo \
     pdo_pgsql \

@@ -15,6 +15,9 @@ RUN apk add --no-cache \
     opcache \
     zip
 
+# Copy opcache configuration
+COPY docker/php/conf.d/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -33,23 +36,23 @@ COPY . .
 RUN mkdir -p var/cache var/log && chmod -R 777 var
 
 # Runtime stage
-FROM php:8.2-fpm-alpine
+from php:8.2-fpm-alpine
 
-# Install runtime dependencies
+# Install runtime dependencies (no build tools)
 RUN apk add --no-cache \
     nginx \
     libpq \
     postgresql-client \
     curl
 
-# Install PHP extensions
-RUN docker-php-ext-install \
-    pdo \
-    pdo_pgsql \
-    opcache
+# Copy PHP extensions and configuration from builder
+COPY --from=builder /usr/local/lib/php/extensions /usr/local/lib/php/extensions
+COPY --from=builder /usr/local/etc/php/conf.d /usr/local/etc/php/conf.d
+
+# Enable PHP extensions
+RUN docker-php-ext-enable pdo pdo_pgsql opcache
 
 # Copy PHP-FPM configuration
-COPY docker/php/conf.d/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.conf
 
 # Copy application from builder

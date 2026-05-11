@@ -1,5 +1,5 @@
 # Build stage
-FROM php:8.2-fpm-alpine as builder
+from php:8.2-fpm-alpine as builder
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -20,10 +20,10 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copy composer files
-COPY composer.json composer.lock ./
+# Copy only composer.json
+COPY composer.json ./
 
-# Install PHP dependencies
+# Install PHP dependencies (this will create composer.lock)
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Copy application code

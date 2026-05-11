@@ -5,6 +5,17 @@ set -e
 export DATABASE_HOST=${DATABASE_HOST:-localhost}
 export DATABASE_PORT=${DATABASE_PORT:-5432}
 export DATABASE_USER=${DATABASE_USER:-app}
+export DATABASE_NAME=${DATABASE_NAME:-app}
+export DATABASE_PASSWORD=${DATABASE_PASSWORD:-}
+
+# If DATABASE_URL is not set, build it from DATABASE_* variables
+if [ -z "$DATABASE_URL" ]; then
+  if [ -n "$DATABASE_PASSWORD" ]; then
+    export DATABASE_URL="postgresql://$DATABASE_USER:$DATABASE_PASSWORD@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME"
+  else
+    export DATABASE_URL="postgresql://$DATABASE_USER@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME"
+  fi
+fi
 
 echo "=== Container Startup ===" 
 echo "Database configuration:"

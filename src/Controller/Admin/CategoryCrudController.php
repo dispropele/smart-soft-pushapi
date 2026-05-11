@@ -7,15 +7,13 @@ use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class CategoryCrudController extends AbstractCrudController
+class CategoryCrudController extends AbstractProtectedCrudController
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
-    
+    public function __construct(private EntityManagerInterface $em) {}
+
     public static function getEntityFqcn(): string
     {
         return Category::class;
@@ -37,31 +35,26 @@ class CategoryCrudController extends AbstractCrudController
         yield TextField::new('name', 'Название');
     }
 
-    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
-    {
-        if (!$entityInstance instanceof Category) {
-            parent::deleteEntity($entityManager, $entityInstance);
-            return;
-        }
-
-        $goodTypeCount = $this->entityManager->createQuery(
-            'SELECT COUNT(gt) FROM App\\Entity\\GoodType gt WHERE gt.category = :category'
-        )->setParameter('category', $entityInstance)->getSingleScalarResult();
-
-        if ($goodTypeCount > 0) {
-            throw new ForbiddenActionException(
-                sprintf(
-                    'Невозможно удалить категорию: она используется в %d видах изделий.',
-                    $goodTypeCount
-                )
-            );
-        }
-
-        parent::deleteEntity($entityManager, $entityInstance);
-    }
-
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
+    }
+
+    protected function getDeletionBlockMessage(mixed $entity): ?string
+    {
+        if (!$entity instanceof Category) return null;
+
+        $count = $this->em->createQuery(
+            'SELECT COUNT(gt) FROM App\\Entity\\GoodType gt WHERE gt.category = :cat'
+        )->setParameter('cat', $entity)->getSingleScalarResult();
+
+        if ($count > 0) {
+            return sprintf(
+                'Невозможно удалить категорию «%s»: она используется в %d видах изделий. Сначала удалите или переназначьте их.',
+                $entity->getName(), $count
+            );
+        }
+
+        return null;
     }
 }

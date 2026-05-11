@@ -5,14 +5,12 @@ namespace App\Controller\Admin;
 use App\Entity\Currency;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class CurrencyCrudController extends AbstractCrudController
+class CurrencyCrudController extends AbstractProtectedCrudController
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
+    public function __construct(private EntityManagerInterface $em) {}
 
     public static function getEntityFqcn(): string
     {
@@ -36,26 +34,21 @@ class CurrencyCrudController extends AbstractCrudController
         yield TextField::new('name', 'Название');
     }
 
-    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    protected function getDeletionBlockMessage(mixed $entity): ?string
     {
-        if (!$entityInstance instanceof Currency) {
-            parent::deleteEntity($entityManager, $entityInstance);
-            return;
-        }
+        if (!$entity instanceof Currency) return null;
 
-        $goodCount = $this->entityManager->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.currency = :currency'
-        )->setParameter('currency', $entityInstance)->getSingleScalarResult();
+        $count = $this->em->createQuery(
+            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.currency = :cur'
+        )->setParameter('cur', $entity)->getSingleScalarResult();
 
-        if ($goodCount > 0) {
-            throw new ForbiddenActionException(
-                sprintf(
-                    'Невозможно удалить валюту: она используется в %d товарах.',
-                    $goodCount
-                )
+        if ($count > 0) {
+            return sprintf(
+                'Невозможно удалить валюту «%s»: она используется в %d товарах.',
+                $entity->getCurrency(), $count
             );
         }
 
-        parent::deleteEntity($entityManager, $entityInstance);
+        return null;
     }
 }

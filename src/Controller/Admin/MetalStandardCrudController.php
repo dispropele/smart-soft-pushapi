@@ -5,15 +5,13 @@ namespace App\Controller\Admin;
 use App\Entity\MetalStandard;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class MetalStandardCrudController extends AbstractCrudController
+class MetalStandardCrudController extends AbstractProtectedCrudController
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
+    public function __construct(private EntityManagerInterface $em) {}
 
     public static function getEntityFqcn(): string
     {
@@ -33,38 +31,33 @@ class MetalStandardCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-
-        yield AssociationField::new('metal', 'Металл')
-            ->autocomplete();
-
+        yield AssociationField::new('metal', 'Металл')->autocomplete();
         yield TextField::new('name', 'Проба (напр. 585, 925)');
     }
 
-    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    protected function getDeletionBlockMessage(mixed $entity): ?string
     {
-        if (!$entityInstance instanceof MetalStandard) {
-            parent::deleteEntity($entityManager, $entityInstance);
-            return;
-        }
+        if (!$entity instanceof MetalStandard) return null;
 
-        $loanedItemCount = $this->entityManager->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.metalStandard = :standard'
-        )->setParameter('standard', $entityInstance)->getSingleScalarResult();
+        $loanedCount = $this->em->createQuery(
+            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.metalStandard = :s'
+        )->setParameter('s', $entity)->getSingleScalarResult();
 
-        $goodCount = $this->entityManager->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.metalStandard = :standard'
-        )->setParameter('standard', $entityInstance)->getSingleScalarResult();
+        $goodCount = $this->em->createQuery(
+            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.metalStandard = :s'
+        )->setParameter('s', $entity)->getSingleScalarResult();
 
-        if ($loanedItemCount > 0 || $goodCount > 0) {
-            throw new ForbiddenActionException(
-                sprintf(
-                    'Невозможно удалить пробу: она используется в %d предметах залога и %d товарах.',
-                    $loanedItemCount,
-                    $goodCount
-                )
+        if ($loanedCount + $goodCount > 0) {
+            $parts = [];
+            if ($loanedCount > 0) $parts[] = "{$loanedCount} предметов залога";
+            if ($goodCount   > 0) $parts[] = "{$goodCount} товаров";
+
+            return sprintf(
+                'Невозможно удалить пробу «%s»: она используется в %s.',
+                $entity, implode(', ', $parts)
             );
         }
 
-        parent::deleteEntity($entityManager, $entityInstance);
+        return null;
     }
 }

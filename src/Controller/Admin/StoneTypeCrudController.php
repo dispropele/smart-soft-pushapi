@@ -5,15 +5,13 @@ namespace App\Controller\Admin;
 use App\Entity\StoneType;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class StoneTypeCrudController extends AbstractCrudController
+class StoneTypeCrudController extends AbstractProtectedCrudController
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
-    
+    public function __construct(private EntityManagerInterface $em) {}
+
     public static function getEntityFqcn(): string
     {
         return StoneType::class;
@@ -33,37 +31,34 @@ class StoneTypeCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->hideOnForm();
         yield TextField::new('name', 'Название');
-        // Код — только в деталях, заполняется автоматически
         yield TextField::new('code', 'Код')
             ->onlyOnDetail()
             ->formatValue(fn($v) => $v ?? '—');
     }
 
-    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    protected function getDeletionBlockMessage(mixed $entity): ?string
     {
-        if (!$entityInstance instanceof StoneType) {
-            parent::deleteEntity($entityManager, $entityInstance);
-            return;
-        }
+        if (!$entity instanceof StoneType) return null;
 
-        $loanedItemCount = $this->entityManager->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.stoneType = :stoneType'
-        )->setParameter('stoneType', $entityInstance)->getSingleScalarResult();
+        $loanedCount = $this->em->createQuery(
+            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.stoneType = :s'
+        )->setParameter('s', $entity)->getSingleScalarResult();
 
-        $goodCount = $this->entityManager->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.stoneType = :stoneType'
-        )->setParameter('stoneType', $entityInstance)->getSingleScalarResult();
+        $goodCount = $this->em->createQuery(
+            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.stoneType = :s'
+        )->setParameter('s', $entity)->getSingleScalarResult();
 
-        if ($loanedItemCount > 0 || $goodCount > 0) {
-            throw new ForbiddenActionException(
-                sprintf(
-                    'Невозможно удалить тип камня: он используется в %d предметах залога и %d товарах.',
-                    $loanedItemCount,
-                    $goodCount
-                )
+        if ($loanedCount + $goodCount > 0) {
+            $parts = [];
+            if ($loanedCount > 0) $parts[] = "{$loanedCount} предметов залога";
+            if ($goodCount   > 0) $parts[] = "{$goodCount} товаров";
+
+            return sprintf(
+                'Невозможно удалить тип камня «%s»: он используется в %s.',
+                $entity->getName(), implode(', ', $parts)
             );
         }
 
-        parent::deleteEntity($entityManager, $entityInstance);
+        return null;
     }
 }

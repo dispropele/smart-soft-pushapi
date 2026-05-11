@@ -194,26 +194,24 @@ class SmartLombardHandler
             };
             $good->setStatus($status);
 
-            $parentCategory = null;
+            // Category — flat, no parent anymore (parent_id was dropped in migration)
             if (!empty($data['category'])) {
-                $parentCategory = $this->findOrCreateCategory($data['category'], null);
-                $good->setCategory($parentCategory);
+                $good->setCategory($this->findOrCreateCategory($data['category']));
             }
-            // подкатегорий больше нет — игнорируем поле subcategory
 
-            // валюта
+            // Currency
             if (!empty($data['currency'])) {
                 $good->setCurrency($this->findOrCreateCurrency($data['currency']));
             }
 
-            // металл / проба
+            // Metal / standard
             if (!empty($data['metal_name']) && !empty($data['metal_standart_name'])) {
                 $good->setMetalStandard(
                     $this->findOrCreateMetalStandard($data['metal_name'], $data['metal_standart_name'])
                 );
             }
 
-            // изображения
+            // Images
             if (array_key_exists('images', $data)) {
                 foreach ($good->getImages() as $old) {
                     $this->entityManager->remove($old);
@@ -243,15 +241,16 @@ class SmartLombardHandler
         }
     }
 
-    private function findOrCreateCategory(string $name, ?Category $parent): Category
+    /**
+     * Flat category lookup — parent_id was dropped in migration Version20260511094948.
+     */
+    private function findOrCreateCategory(string $name): Category
     {
-        $cat = $this->entityManager->getRepository(Category::class)
-            ->findOneBy(['name' => $name, 'parent' => $parent]);
+        $cat = $this->entityManager->getRepository(Category::class)->findOneBy(['name' => $name]);
 
         if (!$cat) {
             $cat = new Category();
             $cat->setName($name);
-            $cat->setParent($parent);
             $this->entityManager->persist($cat);
         }
 
@@ -318,6 +317,7 @@ class SmartLombardHandler
         $this->entityManager->persist($log);
     }
 
+    /** @deprecated Use writeLog() */
     public function logRequest(string $entity, string $event, ?int $id, array $payload, bool $auth, bool $process, ?string $error = null): void
     {
         $this->writeLog($entity, $event, $id, $payload, $auth, $process, $error);

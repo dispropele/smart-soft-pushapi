@@ -5,15 +5,13 @@ namespace App\Controller\Admin;
 use App\Entity\MetalColor;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 
-class MetalColorCrudController extends AbstractCrudController
+class MetalColorCrudController extends AbstractProtectedCrudController
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
+    public function __construct(private EntityManagerInterface $em) {}
 
     public static function getEntityFqcn(): string
     {
@@ -33,43 +31,36 @@ class MetalColorCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        
-        yield AssociationField::new('metal', 'Металл')
-            ->autocomplete()
-            ->setRequired(true);
-        
+        yield AssociationField::new('metal', 'Металл')->autocomplete()->setRequired(true);
         yield TextField::new('name', 'Название');
-        
         yield TextField::new('code', 'Код')
             ->onlyOnDetail()
             ->formatValue(fn($v) => $v ?? '—');
     }
 
-    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    protected function getDeletionBlockMessage(mixed $entity): ?string
     {
-        if (!$entityInstance instanceof MetalColor) {
-            parent::deleteEntity($entityManager, $entityInstance);
-            return;
-        }
+        if (!$entity instanceof MetalColor) return null;
 
-        $loanedItemCount = $this->entityManager->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.metalColor = :color'
-        )->setParameter('color', $entityInstance)->getSingleScalarResult();
+        $loanedCount = $this->em->createQuery(
+            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.metalColor = :c'
+        )->setParameter('c', $entity)->getSingleScalarResult();
 
-        $goodCount = $this->entityManager->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.metalColor = :color'
-        )->setParameter('color', $entityInstance)->getSingleScalarResult();
+        $goodCount = $this->em->createQuery(
+            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.metalColor = :c'
+        )->setParameter('c', $entity)->getSingleScalarResult();
 
-        if ($loanedItemCount > 0 || $goodCount > 0) {
-            throw new ForbiddenActionException(
-                sprintf(
-                    'Невозможно удалить цвет металла: он используется в %d предметах залога и %d товарах.',
-                    $loanedItemCount,
-                    $goodCount
-                )
+        if ($loanedCount + $goodCount > 0) {
+            $parts = [];
+            if ($loanedCount > 0) $parts[] = "{$loanedCount} предметов залога";
+            if ($goodCount   > 0) $parts[] = "{$goodCount} товаров";
+
+            return sprintf(
+                'Невозможно удалить цвет «%s»: он используется в %s.',
+                $entity->getName(), implode(', ', $parts)
             );
         }
 
-        parent::deleteEntity($entityManager, $entityInstance);
+        return null;
     }
 }

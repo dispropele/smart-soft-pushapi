@@ -5,16 +5,15 @@ namespace App\Controller\Admin;
 use App\Entity\GoodType;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class GoodTypeCrudController extends AbstractCrudController
+class GoodTypeCrudController extends AbstractProtectedCrudController
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
+    public function __construct(private EntityManagerInterface $em) {}
+
     public static function getEntityFqcn(): string
     {
         return GoodType::class;
@@ -33,22 +32,16 @@ class GoodTypeCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-
         yield TextField::new('name', 'Название');
-
-        yield AssociationField::new('category', 'Категория')
-            ->autocomplete();
-
+        yield AssociationField::new('category', 'Категория')->autocomplete();
         yield BooleanField::new('hasStones', 'Со вставками (камнями)')
             ->setHelp('Включите, если этот вид изделий обычно имеет камни');
-
-        // Код скрыт от формы — генерируется автоматически
         yield TextField::new('code', 'Код')
             ->onlyOnDetail()
             ->formatValue(fn($v) => $v ?? '—');
     }
 
-    /** Автогенерация кода из названия */
+    /** Auto-generate code from name on create/update */
     public function persistEntity(EntityManagerInterface $em, $entityInstance): void
     {
         if ($entityInstance instanceof GoodType && !$entityInstance->getCode()) {
@@ -80,31 +73,29 @@ class GoodTypeCrudController extends AbstractCrudController
         return mb_substr($code, 0, 50) ?: 'type_' . rand(1000, 9999);
     }
 
-    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    protected function getDeletionBlockMessage(mixed $entity): ?string
     {
-        if (!$entityInstance instanceof GoodType) {
-            parent::deleteEntity($entityManager, $entityInstance);
-            return;
-        }
+        if (!$entity instanceof GoodType) return null;
 
-        $loanedItemCount = $this->entityManager->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.goodType = :goodType'
-        )->setParameter('goodType', $entityInstance)->getSingleScalarResult();
+        $loanedCount = $this->em->createQuery(
+            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.goodType = :t'
+        )->setParameter('t', $entity)->getSingleScalarResult();
 
-        $goodCount = $this->entityManager->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.goodType = :goodType'
-        )->setParameter('goodType', $entityInstance)->getSingleScalarResult();
+        $goodCount = $this->em->createQuery(
+            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.goodType = :t'
+        )->setParameter('t', $entity)->getSingleScalarResult();
 
-        if ($loanedItemCount > 0 || $goodCount > 0) {
-            throw new ForbiddenActionException(
-                sprintf(
-                    'Невозможно удалить вид изделия: он используется в %d предметах залога и %d товарах.',
-                    $loanedItemCount,
-                    $goodCount
-                )
+        if ($loanedCount + $goodCount > 0) {
+            $parts = [];
+            if ($loanedCount > 0) $parts[] = "{$loanedCount} предметов залога";
+            if ($goodCount   > 0) $parts[] = "{$goodCount} товаров";
+
+            return sprintf(
+                'Невозможно удалить вид изделия «%s»: он используется в %s.',
+                $entity->getName(), implode(', ', $parts)
             );
         }
 
-        parent::deleteEntity($entityManager, $entityInstance);
+        return null;
     }
 }

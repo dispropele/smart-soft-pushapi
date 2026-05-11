@@ -5,14 +5,12 @@ namespace App\Controller\Admin;
 use App\Entity\City;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class CityCrudController extends AbstractCrudController
+class CityCrudController extends AbstractProtectedCrudController
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
+    public function __construct(private EntityManagerInterface $em) {}
 
     public static function getEntityFqcn(): string
     {
@@ -35,26 +33,21 @@ class CityCrudController extends AbstractCrudController
         yield TextField::new('name', 'Название');
     }
 
-    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    protected function getDeletionBlockMessage(mixed $entity): ?string
     {
-        if (!$entityInstance instanceof City) {
-            parent::deleteEntity($entityManager, $entityInstance);
-            return;
-        }
+        if (!$entity instanceof City) return null;
 
-        $merchantCount = $this->entityManager->createQuery(
+        $count = $this->em->createQuery(
             'SELECT COUNT(m) FROM App\\Entity\\Merchant m WHERE m.city = :city'
-        )->setParameter('city', $entityInstance)->getSingleScalarResult();
+        )->setParameter('city', $entity)->getSingleScalarResult();
 
-        if ($merchantCount > 0) {
-            throw new ForbiddenActionException(
-                sprintf(
-                    'Невозможно удалить город: он используется в %d филиалах.',
-                    $merchantCount
-                )
+        if ($count > 0) {
+            return sprintf(
+                'Невозможно удалить город «%s»: он привязан к %d филиалам. Сначала измените город у филиалов.',
+                $entity->getName(), $count
             );
         }
 
-        parent::deleteEntity($entityManager, $entityInstance);
+        return null;
     }
 }

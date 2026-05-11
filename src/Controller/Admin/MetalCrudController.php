@@ -5,14 +5,12 @@ namespace App\Controller\Admin;
 use App\Entity\Metal;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class MetalCrudController extends AbstractCrudController
+class MetalCrudController extends AbstractProtectedCrudController
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
+    public function __construct(private EntityManagerInterface $em) {}
 
     public static function getEntityFqcn(): string
     {
@@ -35,42 +33,41 @@ class MetalCrudController extends AbstractCrudController
         yield TextField::new('name', 'Название');
     }
 
-    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    protected function getDeletionBlockMessage(mixed $entity): ?string
     {
-        if (!$entityInstance instanceof Metal) {
-            parent::deleteEntity($entityManager, $entityInstance);
-            return;
-        }
+        if (!$entity instanceof Metal) return null;
 
-        $metalColorCount = $this->entityManager->createQuery(
-            'SELECT COUNT(mc) FROM App\\Entity\\MetalColor mc WHERE mc.metal = :metal'
-        )->setParameter('metal', $entityInstance)->getSingleScalarResult();
+        $colorCount = $this->em->createQuery(
+            'SELECT COUNT(mc) FROM App\\Entity\\MetalColor mc WHERE mc.metal = :m'
+        )->setParameter('m', $entity)->getSingleScalarResult();
 
-        $metalStandardCount = $this->entityManager->createQuery(
-            'SELECT COUNT(ms) FROM App\\Entity\\MetalStandard ms WHERE ms.metal = :metal'
-        )->setParameter('metal', $entityInstance)->getSingleScalarResult();
+        $standardCount = $this->em->createQuery(
+            'SELECT COUNT(ms) FROM App\\Entity\\MetalStandard ms WHERE ms.metal = :m'
+        )->setParameter('m', $entity)->getSingleScalarResult();
 
-        $loanedItemCount = $this->entityManager->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.metal = :metal'
-        )->setParameter('metal', $entityInstance)->getSingleScalarResult();
+        $loanedCount = $this->em->createQuery(
+            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.metal = :m'
+        )->setParameter('m', $entity)->getSingleScalarResult();
 
-        $goodCount = $this->entityManager->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.metal = :metal'
-        )->setParameter('metal', $entityInstance)->getSingleScalarResult();
+        // Good has no direct metal field — link is Good.metalStandard → MetalStandard.metal
+        $goodCount = $this->em->createQuery(
+            'SELECT COUNT(g) FROM App\\Entity\\Good g JOIN g.metalStandard ms WHERE ms.metal = :m'
+        )->setParameter('m', $entity)->getSingleScalarResult();
 
-        if ($metalColorCount > 0 || $metalStandardCount > 0 || $loanedItemCount > 0 || $goodCount > 0) {
-            throw new ForbiddenActionException(
-                sprintf(
-                    'Невозможно удалить металл "%s": он используется в %d цветах, %d пробах, %d предметах залога и %d товарах.',
-                    $entityInstance->getName(),
-                    $metalColorCount,
-                    $metalStandardCount,
-                    $loanedItemCount,
-                    $goodCount
-                )
+        $total = $colorCount + $standardCount + $loanedCount + $goodCount;
+        if ($total > 0) {
+            $parts = [];
+            if ($colorCount   > 0) $parts[] = "{$colorCount} цветов металла";
+            if ($standardCount > 0) $parts[] = "{$standardCount} проб";
+            if ($loanedCount  > 0) $parts[] = "{$loanedCount} предметов залога";
+            if ($goodCount    > 0) $parts[] = "{$goodCount} товаров";
+
+            return sprintf(
+                'Невозможно удалить металл «%s»: он используется в %s.',
+                $entity->getName(), implode(', ', $parts)
             );
         }
 
-        parent::deleteEntity($entityManager, $entityInstance);
+        return null;
     }
 }

@@ -20,16 +20,16 @@ class CatalogController extends AbstractController
         $page     = max(1, (int) $request->query->get('page', 1));
         $perPage  = 20;
 
-        // Фильтры
+        // Filters
         $priceMin   = $request->query->get('price_min');
         $priceMax   = $request->query->get('price_max');
         $categoryId = $request->query->get('category');
         $goodTypeId = $request->query->get('type');
 
-        $priceMin = $priceMin !== null && $priceMin !== '' ? (float) $priceMin : null;
-        $priceMax = $priceMax !== null && $priceMax !== '' ? (float) $priceMax : null;
-        $categoryId = $categoryId !== null && $categoryId !== '' ? (int) $categoryId : null;
-        $goodTypeId = $goodTypeId !== null && $goodTypeId !== '' ? (int) $goodTypeId : null;
+        $priceMin   = ($priceMin !== null && $priceMin !== '')   ? (float) $priceMin   : null;
+        $priceMax   = ($priceMax !== null && $priceMax !== '')   ? (float) $priceMax   : null;
+        $categoryId = ($categoryId !== null && $categoryId !== '') ? (int) $categoryId : null;
+        $goodTypeId = ($goodTypeId !== null && $goodTypeId !== '') ? (int) $goodTypeId : null;
 
         $orderMap = [
             'date'       => ['statusDate', 'DESC'],
@@ -40,26 +40,36 @@ class CatalogController extends AbstractController
         [$orderField, $orderDir] = $orderMap[$sort] ?? $orderMap['date'];
 
         $goods = $goodRepository->findForCatalog(
-            search: $search,
+            search:     $search,
             orderField: $orderField,
-            orderDir: $orderDir,
-            page: $page,
-            perPage: $perPage,
-            priceMin: $priceMin,
-            priceMax: $priceMax,
+            orderDir:   $orderDir,
+            page:       $page,
+            perPage:    $perPage,
+            priceMin:   $priceMin,
+            priceMax:   $priceMax,
             categoryId: $categoryId,
             goodTypeId: $goodTypeId,
         );
 
         $total = $goodRepository->countForCatalog(
-            search: $search,
-            priceMin: $priceMin,
-            priceMax: $priceMax,
+            search:     $search,
+            priceMin:   $priceMin,
+            priceMax:   $priceMax,
             categoryId: $categoryId,
             goodTypeId: $goodTypeId,
         );
 
-        // Получаем все категории для фильтра
+        $pages = max(1, (int) ceil($total / $perPage));
+
+        // Redirect to last valid page if out of range
+        if ($page > $pages && $total > 0) {
+            return $this->redirectToRoute('app_catalog', array_merge(
+                $request->query->all(),
+                ['page' => $pages]
+            ));
+        }
+
+        // Categories for filter dropdown
         $categories = $goodRepository->createQueryBuilder('g')
             ->select('cat.id, cat.name')
             ->leftJoin('g.category', 'cat')
@@ -76,7 +86,7 @@ class CatalogController extends AbstractController
             'categories' => $categories,
             'total'      => $total,
             'page'       => $page,
-            'pages'      => (int) ceil($total / $perPage),
+            'pages'      => $pages,
             'perPage'    => $perPage,
             'search'     => $search,
             'sort'       => $sort,
@@ -123,17 +133,18 @@ class CatalogController extends AbstractController
         }
 
         return new JsonResponse([
-            'count'  => count($cart) + ($inCart ? 0 : 0), // уже обновлено выше
-            'inCart' => true,
             'count'  => count($session->get('cart', [])),
+            'inCart' => true,
         ]);
     }
 
     #[Route('/cart/remove/{id}', name: 'app_cart_remove', methods: ['POST'])]
     public function cartRemove(int $id, SessionInterface $session): JsonResponse
     {
-        $cart = array_filter($session->get('cart', []), fn($i) => $i !== $id);
-        $cart = array_values($cart);
+        $cart = array_values(array_filter(
+            $session->get('cart', []),
+            fn($i) => $i !== $id
+        ));
         $session->set('cart', $cart);
 
         return new JsonResponse(['count' => count($cart)]);

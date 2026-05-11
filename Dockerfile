@@ -68,25 +68,9 @@ RUN mkdir -p var/cache var/log public/uploads && \
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY docker/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
 
-# Create startup script
-RUN echo '#!/bin/sh\n\
-set -e\n\
-\n\
-echo "Waiting for database..."\n\
-while ! pg_isready -h $DATABASE_HOST -U $DATABASE_USER; do\n\
-  sleep 1\n\
-done\n\
-\n\
-echo "Running migrations..."\n\
-php bin/console doctrine:migrations:migrate --no-interaction || true\n\
-\n\
-echo "Clearing cache..."\n\
-php bin/console cache:clear --env=prod || true\n\
-\n\
-echo "Starting services..."\n\
-php-fpm &\n\
-nginx -g "daemon off;"\n\
-' > /entrypoint.sh && chmod +x /entrypoint.sh
+# Copy entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

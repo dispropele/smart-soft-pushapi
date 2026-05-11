@@ -9,11 +9,16 @@ RUN apk add --no-cache \
     postgresql-client \
     oniguruma-dev \
     libzip-dev \
-    && docker-php-ext-install \
+    icu-dev \
+    $PHPIZE_DEPS \
+    && docker-php-ext-configure zip --with-libzip \
+    && docker-php-ext-install -j"$(nproc)" \
     pdo \
     pdo_pgsql \
     opcache \
-    zip
+    zip \
+    intl \
+    && apk del $PHPIZE_DEPS
 
 # Copy opcache configuration
 COPY docker/php/conf.d/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
@@ -43,14 +48,16 @@ RUN apk add --no-cache \
     nginx \
     libpq \
     postgresql-client \
-    curl
+    curl \
+    libzip \
+    icu-libs
 
 # Copy PHP extensions and configuration from builder
 COPY --from=builder /usr/local/lib/php/extensions /usr/local/lib/php/extensions
 COPY --from=builder /usr/local/etc/php/conf.d /usr/local/etc/php/conf.d
 
 # Enable PHP extensions
-RUN docker-php-ext-enable pdo pdo_pgsql opcache
+RUN docker-php-ext-enable pdo pdo_pgsql opcache zip intl
 
 # Copy PHP-FPM configuration
 COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.conf

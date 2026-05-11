@@ -19,7 +19,6 @@ composer.lock
 README.md
 DIPLOMA_README.md
 docs
-migrations
 .php-cs-fixer.cache
 .phpstan
 .editorconfig

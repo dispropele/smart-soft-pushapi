@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: smart-soft-pushapi
+    runtime: docker
+    dockerfilePath: Dockerfile
+    region: ohio
+    plan: standard
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: prod
+      - key: APP_SECRET
+        generateValue: true
+      # Database variables - set these manually in Render Dashboard
+      # Get these values from your PostgreSQL service details
+      - key: DATABASE_HOST
+        sync: false
+      - key: DATABASE_PORT
+        sync: false
+      - key: DATABASE_NAME
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false

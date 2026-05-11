@@ -2,7 +2,7 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
-    trusted_proxies: '127.0.0.1,euplastic-spleenfully-liberty.ngrok-free.dev'
+    trusted_proxies: '%env(default::TRUSTED_PROXIES)%'
     trusted_headers:
         - 'x-forwarded-for'
         - 'x-forwarded-host'

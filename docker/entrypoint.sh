@@ -73,6 +73,16 @@ if [ -n "$ADMIN_USERNAME" ] && [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]
   php bin/console app:create-admin "$ADMIN_USERNAME" "$ADMIN_EMAIL" "$ADMIN_PASSWORD" || echo "⚠ Admin creation failed"
 fi
 
+echo "Creating session directory..."
+mkdir -p /app/var/sessions /app/var/cache /app/var/log
+chown -R www-data:www-data /app/var
+chmod -R 777 /app/var
+
+echo "Fixing permissions for uploads..."
+mkdir -p /app/public/uploads
+chown -R www-data:www-data /app/public/uploads
+chmod -R 775 /app/public/uploads
+
 # Clear cache
 echo "Clearing application cache..."
 if php bin/console cache:clear --env=prod 2>&1; then

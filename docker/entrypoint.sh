@@ -11,9 +11,9 @@ export DATABASE_PASSWORD=${DATABASE_PASSWORD:-}
 # If DATABASE_URL is not set, build it from DATABASE_* variables
 if [ -z "$DATABASE_URL" ]; then
   if [ -n "$DATABASE_PASSWORD" ]; then
-    export DATABASE_URL="postgresql://$DATABASE_USER:$DATABASE_PASSWORD@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME"
+    export DATABASE_URL="postgresql://$DATABASE_USER:$DATABASE_PASSWORD@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME?serverVersion=18&charset=utf8"
   else
-    export DATABASE_URL="postgresql://$DATABASE_USER@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME"
+    export DATABASE_URL="postgresql://$DATABASE_USER@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME?serverVersion=18&charset=utf8"
   fi
 fi
 

@@ -61,8 +61,8 @@ COPY --from=builder --chown=www-data:www-data /app /app
 WORKDIR /app
 
 # Create necessary directories
-RUN mkdir -p var/cache var/log public/uploads && \
-    chmod -R 777 var public/uploads
+RUN mkdir -p var/cache var/log public/uploads /var/log/nginx /run && \
+    chmod -R 777 var public/uploads /var/log/nginx
 
 # Copy Nginx configuration
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf

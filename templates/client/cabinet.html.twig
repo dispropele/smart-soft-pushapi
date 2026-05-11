@@ -25,8 +25,10 @@
                 <p class="text-base text-[#333] font-semibold mt-1">{{ client.fullName }}</p>
             </div>
             <div>
-                <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Номер паспорта</p>
-                <p class="text-base text-[#333] font-semibold mt-1">{{ client.passportNumber }}</p>
+                <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Паспорт</p>
+                <p class="text-base text-[#333] font-semibold mt-1">
+                    {% if client.passportSeries %}{{ client.passportSeries }} {% endif %}{{ client.passportNumber }}
+                </p>
             </div>
             {% if client.phone %}
                 <div>
@@ -38,6 +40,12 @@
                 <div>
                     <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Email</p>
                     <p class="text-base text-[#333] font-semibold mt-1">{{ client.email }}</p>
+                </div>
+            {% endif %}
+            {% if client.address %}
+                <div>
+                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Адрес</p>
+                    <p class="text-base text-[#333] font-semibold mt-1">{{ client.address }}</p>
                 </div>
             {% endif %}
         </div>

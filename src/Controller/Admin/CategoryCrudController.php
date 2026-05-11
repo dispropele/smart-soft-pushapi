@@ -2,28 +2,30 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\StoneType;
+use App\Entity\Category;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class StoneTypeCrudController extends AbstractCrudController
+class CategoryCrudController extends AbstractCrudController
 {
     public function __construct(private EntityManagerInterface $entityManager) {}
     
     public static function getEntityFqcn(): string
     {
-        return StoneType::class;
+        return Category::class;
     }
 
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Тип камня')
-            ->setEntityLabelInPlural('Типы камней')
+            ->setEntityLabelInSingular('Категория')
+            ->setEntityLabelInPlural('Категории')
             ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
@@ -33,37 +35,33 @@ class StoneTypeCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->hideOnForm();
         yield TextField::new('name', 'Название');
-        // Код — только в деталях, заполняется автоматически
-        yield TextField::new('code', 'Код')
-            ->onlyOnDetail()
-            ->formatValue(fn($v) => $v ?? '—');
     }
 
     public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
-        if (!$entityInstance instanceof StoneType) {
+        if (!$entityInstance instanceof Category) {
             parent::deleteEntity($entityManager, $entityInstance);
             return;
         }
 
-        $loanedItemCount = $this->entityManager->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.stoneType = :stoneType'
-        )->setParameter('stoneType', $entityInstance)->getSingleScalarResult();
+        $goodTypeCount = $this->entityManager->createQuery(
+            'SELECT COUNT(gt) FROM App\\Entity\\GoodType gt WHERE gt.category = :category'
+        )->setParameter('category', $entityInstance)->getSingleScalarResult();
 
-        $goodCount = $this->entityManager->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.stoneType = :stoneType'
-        )->setParameter('stoneType', $entityInstance)->getSingleScalarResult();
-
-        if ($loanedItemCount > 0 || $goodCount > 0) {
+        if ($goodTypeCount > 0) {
             throw new ForbiddenActionException(
                 sprintf(
-                    'Невозможно удалить тип камня: он используется в %d предметах залога и %d товарах.',
-                    $loanedItemCount,
-                    $goodCount
+                    'Невозможно удалить категорию: она используется в %d видах изделий.',
+                    $goodTypeCount
                 )
             );
         }
 
         parent::deleteEntity($entityManager, $entityInstance);
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
     }
 }

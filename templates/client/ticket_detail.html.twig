@@ -69,6 +69,14 @@
                         </p>
                     </div>
                 </div>
+
+                <div class="border-t border-[#e1f0f5] pt-6 mt-6">
+                    <div class="bg-[#e1f0f5] p-4 rounded-[2px] border border-[#c8d7e1]">
+                        <p class="text-xs font-bold text-[#1d4e75] uppercase tracking-wide">Сумма к возврату</p>
+                        <p class="text-3xl font-bold text-[#1d4e75] mt-2">{{ ticket.returnAmount }} ₽</p>
+                        <p class="text-xs text-[#7a9fb5] mt-1">Включает процентную ставку</p>
+                    </div>
+                </div>
             </div>
 
             {% if ticket.notes %}
@@ -115,7 +123,7 @@
                                 {% endif %}
                                 {% if item.weight %}
                                     <div>
-                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вес</p>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вес лома</p>
                                         <p class="text-[#333] text-sm mt-1">{{ item.weight }} г</p>
                                     </div>
                                 {% endif %}

@@ -2,7 +2,7 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\StoneType;
+use App\Entity\Currency;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
@@ -10,21 +10,21 @@ use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class StoneTypeCrudController extends AbstractCrudController
+class CurrencyCrudController extends AbstractCrudController
 {
     public function __construct(private EntityManagerInterface $entityManager) {}
-    
+
     public static function getEntityFqcn(): string
     {
-        return StoneType::class;
+        return Currency::class;
     }
 
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Тип камня')
-            ->setEntityLabelInPlural('Типы камней')
-            ->setDefaultSort(['name' => 'ASC'])
+            ->setEntityLabelInSingular('Валюта')
+            ->setEntityLabelInPlural('Валюты')
+            ->setDefaultSort(['currency' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
     }
@@ -32,33 +32,25 @@ class StoneTypeCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
+        yield TextField::new('currency', 'Символ (₽, $, €)');
         yield TextField::new('name', 'Название');
-        // Код — только в деталях, заполняется автоматически
-        yield TextField::new('code', 'Код')
-            ->onlyOnDetail()
-            ->formatValue(fn($v) => $v ?? '—');
     }
 
     public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
-        if (!$entityInstance instanceof StoneType) {
+        if (!$entityInstance instanceof Currency) {
             parent::deleteEntity($entityManager, $entityInstance);
             return;
         }
 
-        $loanedItemCount = $this->entityManager->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.stoneType = :stoneType'
-        )->setParameter('stoneType', $entityInstance)->getSingleScalarResult();
-
         $goodCount = $this->entityManager->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.stoneType = :stoneType'
-        )->setParameter('stoneType', $entityInstance)->getSingleScalarResult();
+            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.currency = :currency'
+        )->setParameter('currency', $entityInstance)->getSingleScalarResult();
 
-        if ($loanedItemCount > 0 || $goodCount > 0) {
+        if ($goodCount > 0) {
             throw new ForbiddenActionException(
                 sprintf(
-                    'Невозможно удалить тип камня: он используется в %d предметах залога и %d товарах.',
-                    $loanedItemCount,
+                    'Невозможно удалить валюту: она используется в %d товарах.',
                     $goodCount
                 )
             );

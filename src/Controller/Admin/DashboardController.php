@@ -11,6 +11,9 @@ use App\Entity\LoanedItem;
 use App\Entity\GoodType;
 use App\Entity\StoneType;
 use App\Entity\MetalColor;
+use App\Entity\Category;
+use App\Entity\Metal;
+use App\Entity\MetalStandard;
 use App\Controller\Admin\GoodCrudController;
 use App\Controller\Admin\HiddenGoodCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
@@ -30,7 +33,7 @@ class DashboardController extends AbstractDashboardController
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('СмартЛомбард · Админ')
+            ->setTitle('Аурум Ломбард · Админ')
             ->renderContentMaximized();
     }
 
@@ -44,15 +47,18 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Заложенное имущество', 'fa fa-box', LoanedItem::class);
 
         yield MenuItem::section('Витрина');
-        yield MenuItem::linkToCrud('Товары', 'fa fa-shopping-bag', Good::class)
+        yield MenuItem::linkToCrud('Товары (активные)', 'fa fa-shopping-bag', Good::class)
             ->setController(GoodCrudController::class);
         yield MenuItem::linkToCrud('Товары (скрытые)', 'fa fa-eye-slash', Good::class)
             ->setController(HiddenGoodCrudController::class);
 
         yield MenuItem::section('Справочники');
+        yield MenuItem::linkToCrud('Категории', 'fa fa-tags', Category::class);
         yield MenuItem::linkToCrud('Виды изделий', 'fa fa-ring', GoodType::class);
         yield MenuItem::linkToCrud('Типы камней', 'fa fa-gem', StoneType::class);
         yield MenuItem::linkToCrud('Цвета металлов', 'fa fa-palette', MetalColor::class);
+        yield MenuItem::linkToCrud('Металлы', 'fa fa-cubes', Metal::class);
+        yield MenuItem::linkToCrud('Пробы', 'fa fa-certificate', MetalStandard::class);
 
         yield MenuItem::section('Структура');
         yield MenuItem::linkToCrud('Филиалы', 'fa fa-building', Merchant::class);

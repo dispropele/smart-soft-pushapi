@@ -33,7 +33,7 @@ class GoodCrudController extends AbstractCrudController
     {
         return $crud
             ->setEntityLabelInSingular('Товар')
-            ->setEntityLabelInPlural('Товары')
+            ->setEntityLabelInPlural('Товары (активные)')
             ->setDefaultSort(['statusDate' => 'DESC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
@@ -50,37 +50,21 @@ class GoodCrudController extends AbstractCrudController
 
         yield TextField::new('name', 'Название');
 
+        // --- Цена ---
         yield TextField::new('soldPrice', 'Цена')
-            ->formatValue(fn ($v, $e) => $v
+            ->formatValue(fn($v, $e) => $v
                 ? number_format((float)$v, 0, '.', ' ') . ' ' . ($e->getCurrency()?->getCurrency() ?? '₽')
-                : '—'
-            )
+                : '—')
             ->hideOnForm();
 
         yield MoneyField::new('soldPrice', 'Цена')
             ->setCurrency('RUB')
             ->setStoredAsCents(false)
-            ->onlyOnForms()
-            ->setFormTypeOptions([
-                'attr' => [
-                    'inputmode' => 'decimal',
-                    'pattern' => '[0-9]+([\\.,][0-9]{0,2})?',
-                    'step' => '0.01',
-                    'min' => 0,
-                ],
-            ]);
+            ->onlyOnForms();
 
-        yield TextField::new('merchant.name', 'Филиал')
-            ->onlyOnIndex();
-
-        yield AssociationField::new('merchant', 'Филиал')
-            ->onlyOnDetail();
-
-        yield AssociationField::new('category', 'Категория')
-            ->onlyOnDetail();
-
+        // --- Статус ---
         yield TextField::new('status', 'Статус')
-            ->formatValue(fn ($v) => match ($v) {
+            ->formatValue(fn($v) => match ($v) {
                 Good::STATUS_SOLD      => '<span style="color:#d9534f;font-weight:600">● Продано</span>',
                 Good::STATUS_WITHDRAWN => '<span style="color:#f0ad4e;font-weight:600">● Изъято</span>',
                 Good::STATUS_HIDDEN    => '<span style="color:#999">● Скрыто</span>',
@@ -99,72 +83,82 @@ class GoodCrudController extends AbstractCrudController
                 'Скрыто'  => Good::STATUS_HIDDEN,
             ]);
 
-        yield TextField::new('hiddenReasonLabel', 'Причина скрытия')
-            ->onlyOnDetail();
-
         yield DateTimeField::new('statusDate', 'Дата обновления')
             ->setFormat('dd.MM.yyyy HH:mm')
             ->hideOnForm();
 
-        yield TextField::new('description', 'Описание')
-            ->onlyOnDetail();
+        // --- Филиал ---
+        yield TextField::new('merchant.name', 'Филиал')->onlyOnIndex();
+        yield AssociationField::new('merchant', 'Филиал')->onlyOnForms()->autocomplete();
 
-        yield TextField::new('specification', 'Спецификации')
-            ->onlyOnDetail();
-
-        yield AssociationField::new('merchant', 'Филиал')
-            ->onlyOnForms();
-
+        // --- Категория и вид изделия ---
         yield AssociationField::new('category', 'Категория')
-            ->onlyOnForms();
-
-        yield TextareaField::new('description', 'Описание')
             ->onlyOnForms()
-            ->setNumOfRows(6);
-
-        yield TextareaField::new('specification', 'Спецификации')
-            ->onlyOnForms()
-            ->setNumOfRows(6);
-
-        yield TextField::new('size', 'Размер')
-            ->onlyOnForms();
+            ->autocomplete();
 
         yield AssociationField::new('goodType', 'Вид изделия')
+            ->onlyOnForms()
+            ->autocomplete();
+
+        // --- Металл ---
+        yield AssociationField::new('metalStandard', 'Металл / проба')
+            ->onlyOnForms()
+            ->autocomplete();
+
+        yield AssociationField::new('metalColor', 'Цвет металла')
+            ->onlyOnForms()
+            ->autocomplete();
+
+        // --- Камни ---
+        yield BooleanField::new('hasStone', 'Со вставкой')   // ← исправлено: было hasStones
             ->onlyOnForms();
 
         yield AssociationField::new('stoneType', 'Тип камня')
-            ->onlyOnForms();
+            ->onlyOnForms()
+            ->autocomplete();
 
-        yield AssociationField::new('metalColor', 'Цвет металла')
-            ->onlyOnForms();
+        // --- Прочее ---
+        yield TextField::new('size', 'Размер')->onlyOnForms();
 
-        yield BooleanField::new('hasStones', 'С камнями')
-            ->onlyOnForms();
+        yield TextareaField::new('description', 'Описание')
+            ->onlyOnForms()
+            ->setNumOfRows(4);
+
+        yield TextareaField::new('specification', 'Спецификации')
+            ->onlyOnForms()
+            ->setNumOfRows(4);
+
+        // --- Detail only ---
+        yield AssociationField::new('merchant', 'Филиал')->onlyOnDetail();
+        yield AssociationField::new('category', 'Категория')->onlyOnDetail();
+        yield AssociationField::new('goodType', 'Вид изделия')->onlyOnDetail();
+        yield AssociationField::new('metalStandard', 'Металл / проба')->onlyOnDetail();
+        yield AssociationField::new('metalColor', 'Цвет металла')->onlyOnDetail();
+        yield AssociationField::new('stoneType', 'Тип камня')->onlyOnDetail();
+        yield TextField::new('hiddenReasonLabel', 'Причина скрытия')->onlyOnDetail();
+        yield TextField::new('description', 'Описание')->onlyOnDetail();
+        yield TextField::new('specification', 'Спецификации')->onlyOnDetail();
     }
 
     public function configureActions(Actions $actions): Actions
     {
-        return $actions
-            // NEW/EDIT уже есть по умолчанию, добавляем только DETAIL
-            ->add(Crud::PAGE_INDEX, Action::DETAIL);
+        return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
     }
 
-    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    public function persistEntity(EntityManagerInterface $em, $entityInstance): void
     {
         if ($entityInstance instanceof Good) {
             $entityInstance->setStatusDate(new \DateTime());
         }
-
-        parent::persistEntity($entityManager, $entityInstance);
+        parent::persistEntity($em, $entityInstance);
     }
 
-    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    public function updateEntity(EntityManagerInterface $em, $entityInstance): void
     {
         if ($entityInstance instanceof Good) {
             $entityInstance->setStatusDate(new \DateTime());
         }
-
-        parent::updateEntity($entityManager, $entityInstance);
+        parent::updateEntity($em, $entityInstance);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -172,6 +166,7 @@ class GoodCrudController extends AbstractCrudController
         return $filters
             ->add(TextFilter::new('name', 'Название'))
             ->add(EntityFilter::new('merchant', 'Филиал'))
+            ->add(EntityFilter::new('category', 'Категория'))
             ->add(ChoiceFilter::new('status', 'Статус')->setChoices([
                 'Продано'  => Good::STATUS_SOLD,
                 'Изъято'   => Good::STATUS_WITHDRAWN,

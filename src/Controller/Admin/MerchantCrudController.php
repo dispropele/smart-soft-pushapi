@@ -60,18 +60,6 @@ class MerchantCrudController extends AbstractCrudController
 
         yield TextareaField::new('description', 'Описание')
             ->setNumOfRows(4);
-
-        if ($pageName !== Crud::PAGE_EDIT && $pageName !== Crud::PAGE_NEW) {
-            yield ImageField::new('imagePreview', 'Логотип')
-                ->setTemplatePath('admin/field/merchant_logo.html.twig')
-                ->setSortable(false);
-        }
-
-        yield TextField::new('imageSrc', 'Логотип (полный, URL)')
-            ->onlyOnForms();
-
-        yield TextField::new('imagePreview', 'Логотип (превью, URL)')
-            ->onlyOnForms();
     }
 
     public function configureActions(Actions $actions): Actions

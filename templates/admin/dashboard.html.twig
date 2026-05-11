@@ -3,47 +3,138 @@
 {% block page_title %}Сводка{% endblock %}
 
 {% block main %}
-<div style="max-width:860px">
+<div style="max-width:1200px">
 
-    <h2 style="font-size:1.1rem;font-weight:600;margin-bottom:1.5rem;
-               color:var(--color-text);border-bottom:1px solid var(--color-border);
-               padding-bottom:.75rem">
-        Панель управления витриной
+    <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:1.5rem;
+               color:var(--color-text);border-bottom:2px solid var(--color-primary);
+               padding-bottom:1rem">
+        Панель управления Аурум Ломбард
     </h2>
 
-    {# Карточки-счётчики #}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.75rem">
+    {# ЛОМБАРД #}
+    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
+        <i class="fa fa-briefcase" style="margin-right:0.5rem;color:#8b5a3c"></i> Ломбард
+    </h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanTicketCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-file-text" style="font-size:1.8rem;color:#1d4e75;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Залоговые билеты</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Управление договорами</span>
+        </a>
 
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\ClientCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-users" style="font-size:1.8rem;color:#2d6ca2;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Клиенты</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">База клиентов</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanedItemCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-box" style="font-size:1.8rem;color:#7a9fb5;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Заложенное имущество</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Вещи в залоге</span>
+        </a>
+    </div>
+
+    {# ВИТРИНА #}
+    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
+        <i class="fa fa-shopping-bag" style="margin-right:0.5rem;color:#d4a574"></i> Витрина
+    </h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
         <a href="{{ ea_url().setController('App\\Controller\\Admin\\GoodCrudController') }}"
            class="ea-dashboard-card">
-            <i class="fa fa-eye-slash" style="font-size:1.6rem;color:#f0ad4e;margin-bottom:.6rem"></i>
-            <span>Скрытые товары</span>
+            <i class="fa fa-cubes" style="font-size:1.8rem;color:#60b060;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Активные товары</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">На продаже</span>
         </a>
 
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\HiddenGoodCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-eye-slash" style="font-size:1.8rem;color:#f0ad4e;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Скрытые товары</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Архив</span>
+        </a>
+    </div>
+
+    {# СПРАВОЧНИКИ #}
+    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
+        <i class="fa fa-tags" style="margin-right:0.5rem;color:#d4af37"></i> Справочники
+    </h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\CategoryCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-folder" style="font-size:1.6rem;color:#7a9fb5;margin-bottom:.6rem"></i>
+            <span>Категории</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-cubes" style="font-size:1.6rem;color:#c0c0c0;margin-bottom:.6rem"></i>
+            <span>Металлы</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalStandardCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-certificate" style="font-size:1.6rem;color:#d4af37;margin-bottom:.6rem"></i>
+            <span>Пробы</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalColorCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-palette" style="font-size:1.6rem;color:#cd7f32;margin-bottom:.6rem"></i>
+            <span>Цвета металлов</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\GoodTypeCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-ring" style="font-size:1.6rem;color:#ffb6c1;margin-bottom:.6rem"></i>
+            <span>Виды изделий</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\StoneTypeCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-gem" style="font-size:1.6rem;color:#00ced1;margin-bottom:.6rem"></i>
+            <span>Типы камней</span>
+        </a>
+    </div>
+
+    {# СТРУКТУРА #}
+    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
+        <i class="fa fa-building" style="margin-right:0.5rem;color:#8b7355"></i> Структура
+    </h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
         <a href="{{ ea_url().setController('App\\Controller\\Admin\\MerchantCrudController') }}"
            class="ea-dashboard-card">
-            <i class="fa fa-building" style="font-size:1.6rem;color:#337ab7;margin-bottom:.6rem"></i>
-            <span>Филиалы</span>
+            <i class="fa fa-map-marker" style="font-size:1.8rem;color:#c41e3a;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Филиалы</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Отделения</span>
         </a>
+    </div>
 
+    {# СИСТЕМА #}
+    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
+        <i class="fa fa-cog" style="margin-right:0.5rem;color:#555"></i> Система
+    </h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
         <a href="{{ ea_url().setController('App\\Controller\\Admin\\PushApiLogCrudController') }}"
            class="ea-dashboard-card">
-            <i class="fa fa-list-alt" style="font-size:1.6rem;color:#5bc0de;margin-bottom:.6rem"></i>
-            <span>Логи Push API</span>
+            <i class="fa fa-list-alt" style="font-size:1.8rem;color:#5bc0de;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Логи Push API</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Синхронизация</span>
         </a>
-
     </div>
 
     {# Подсказка #}
     <div style="background:var(--color-surface-2);border:1px solid var(--color-border);
-                border-radius:var(--border-radius);padding:1.1rem 1.25rem;
-                font-size:.84rem;color:var(--color-text-muted);line-height:1.75">
-        <strong style="color:var(--color-text)">Назначение разделов:</strong><br>
-        <strong>Товары</strong> — просмотр скрытых и проданных позиций, которые не отображаются на витрине.<br>
-        <strong>Филиалы</strong> — данные ломбардов, синхронизируемых через Push API.<br>
-        <strong>Логи Push API</strong> — история входящих вебхуков: статус авторизации, тип события, время и ошибки.<br><br>
-        Данные обновляются автоматически через <code style="background:var(--color-surface-3);
-            padding:.1em .4em;border-radius:3px;color:#e83e8c;font-size:.9em">POST /api/push</code>.
+                border-radius:var(--border-radius);padding:1.5rem;
+                font-size:.85rem;color:var(--color-text-muted);line-height:1.8;margin-top:2rem">
+        <strong style="color:var(--color-text);font-size:0.9rem">💡 Информация:</strong><br>
+        <strong>Залоговые билеты</strong> — основной документ залога с информацией о сумме займа, ставке и сроке.<br>
+        <strong>Заложенное имущество</strong> — описание каждого предмета (тип, металл, проба, вес, оценка).<br>
+        <strong>Справочники</strong> — классификаторы и справочные данные (категории, металлы, пробы и т.д.).<br>
+        <strong>Логи Push API</strong> — история синхронизации данных с филиалами через вебхуки.<br>
     </div>
 </div>
 
@@ -52,20 +143,21 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 1.1rem 1.25rem;
+    padding: 1.3rem;
     background: var(--color-surface-2);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     text-decoration: none;
     color: var(--color-text);
-    font-size: .85rem;
-    transition: border-color .15s, box-shadow .15s;
+    font-size: .9rem;
+    transition: all .2s;
 }
 .ea-dashboard-card:hover {
     border-color: var(--color-primary);
-    box-shadow: 0 2px 8px var(--color-shadow);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.1);
     color: var(--color-text);
     text-decoration: none;
+    transform: translateY(-2px);
 }
 </style>
 {% endblock %}

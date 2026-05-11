@@ -48,11 +48,12 @@ class LoanTicketCrudController extends AbstractCrudController
         yield MoneyField::new('loanAmount', 'Сумма займа')
             ->setCurrency('RUB')
             ->setStoredAsCents(false)
+            ->setRequired(true)
             ->setFormTypeOptions([
                 'attr' => [
                     'inputmode' => 'numeric',
-                    'pattern' => '[0-9]*',
                     'min' => 0,
+                    'step' => '0.01',
                 ],
             ]);
 
@@ -72,6 +73,12 @@ class LoanTicketCrudController extends AbstractCrudController
 
         yield DateTimeField::new('returnDate', 'Срок возврата')
             ->setFormat('dd.MM.yyyy HH:mm');
+
+        yield MoneyField::new('returnAmount', 'Сумма к возврату')
+            ->setCurrency('RUB')
+            ->setStoredAsCents(false)
+            ->onlyOnDetail()
+            ->setFormTypeOptions(['disabled' => true]);
 
         yield ChoiceField::new('status', 'Статус')
             ->setChoices([

@@ -237,4 +237,20 @@ class LoanTicket
             }
         }
     }
+
+    /**
+     * Вычисляет сумму к возврату с учётом процентной ставки
+     */
+    public function getReturnAmount(): ?string
+    {
+        if ($this->loanAmount === null) {
+            return null;
+        }
+
+        $loanAmount = (float) $this->loanAmount;
+        $interestRate = $this->interestRate ? (float) $this->interestRate : 0;
+
+        $returnAmount = $loanAmount + ($loanAmount * $interestRate / 100);
+        return number_format($returnAmount, 2, '.', '');
+    }
 }

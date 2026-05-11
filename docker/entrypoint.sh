@@ -63,6 +63,12 @@ else
   echo "⚠ Cache clear failed"
 fi
 
+echo "Fixing permissions for cache and logs..."
+chown -R www-data:www-data /app/var /app/public/uploads
+
+echo ""
+echo "=== Starting Services ==="
+
 echo ""
 echo "=== Starting Services ==="
 echo "PHP-FPM will listen on /run/php-fpm.sock"

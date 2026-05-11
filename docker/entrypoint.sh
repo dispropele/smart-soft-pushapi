@@ -55,6 +55,24 @@ else
   echo "⚠ Migrations failed or database not ready (will retry on requests)"
 fi
 
+# Optional: run database seed command when RUN_SEEDS=1
+export RUN_SEEDS=${RUN_SEEDS:-0}
+export SEED_NO_CLEAR=${SEED_NO_CLEAR:-1}
+if [ "$RUN_SEEDS" = "1" ]; then
+  echo "Running database seed (RUN_SEEDS=1)..."
+  if [ "$SEED_NO_CLEAR" = "1" ]; then
+    php bin/console app:seed --no-clear || echo "⚠ Seed failed"
+  else
+    php bin/console app:seed || echo "⚠ Seed failed"
+  fi
+fi
+
+# Optional: create admin user if credentials provided
+if [ -n "$ADMIN_USERNAME" ] && [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
+  echo "Creating admin user: $ADMIN_USERNAME"
+  php bin/console app:create-admin "$ADMIN_USERNAME" "$ADMIN_EMAIL" "$ADMIN_PASSWORD" || echo "⚠ Admin creation failed"
+fi
+
 # Clear cache
 echo "Clearing application cache..."
 if php bin/console cache:clear --env=prod 2>&1; then

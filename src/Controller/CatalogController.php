@@ -20,6 +20,17 @@ class CatalogController extends AbstractController
         $page     = max(1, (int) $request->query->get('page', 1));
         $perPage  = 20;
 
+        // Фильтры
+        $priceMin   = $request->query->get('price_min');
+        $priceMax   = $request->query->get('price_max');
+        $categoryId = $request->query->get('category');
+        $goodTypeId = $request->query->get('type');
+
+        $priceMin = $priceMin !== null && $priceMin !== '' ? (float) $priceMin : null;
+        $priceMax = $priceMax !== null && $priceMax !== '' ? (float) $priceMax : null;
+        $categoryId = $categoryId !== null && $categoryId !== '' ? (int) $categoryId : null;
+        $goodTypeId = $goodTypeId !== null && $goodTypeId !== '' ? (int) $goodTypeId : null;
+
         $orderMap = [
             'date'       => ['statusDate', 'DESC'],
             'price_asc'  => ['soldPrice',  'ASC'],
@@ -34,18 +45,45 @@ class CatalogController extends AbstractController
             orderDir: $orderDir,
             page: $page,
             perPage: $perPage,
+            priceMin: $priceMin,
+            priceMax: $priceMax,
+            categoryId: $categoryId,
+            goodTypeId: $goodTypeId,
         );
 
-        $total = $goodRepository->countForCatalog($search);
+        $total = $goodRepository->countForCatalog(
+            search: $search,
+            priceMin: $priceMin,
+            priceMax: $priceMax,
+            categoryId: $categoryId,
+            goodTypeId: $goodTypeId,
+        );
+
+        // Получаем все категории для фильтра
+        $categories = $goodRepository->createQueryBuilder('g')
+            ->select('cat.id, cat.name')
+            ->leftJoin('g.category', 'cat')
+            ->where('g.status = :status')
+            ->andWhere('cat.id IS NOT NULL')
+            ->setParameter('status', \App\Entity\Good::STATUS_ACTIVE)
+            ->groupBy('cat.id, cat.name')
+            ->orderBy('cat.name', 'ASC')
+            ->getQuery()
+            ->getResult();
 
         return $this->render('catalog/index.html.twig', [
-            'goods'   => $goods,
-            'total'   => $total,
-            'page'    => $page,
-            'pages'   => (int) ceil($total / $perPage),
-            'perPage' => $perPage,
-            'search'  => $search,
-            'sort'    => $sort,
+            'goods'      => $goods,
+            'categories' => $categories,
+            'total'      => $total,
+            'page'       => $page,
+            'pages'      => (int) ceil($total / $perPage),
+            'perPage'    => $perPage,
+            'search'     => $search,
+            'sort'       => $sort,
+            'priceMin'   => $priceMin,
+            'priceMax'   => $priceMax,
+            'categoryId' => $categoryId,
+            'goodTypeId' => $goodTypeId,
         ]);
     }
 

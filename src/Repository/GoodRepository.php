@@ -18,16 +18,18 @@ class GoodRepository extends ServiceEntityRepository
         string $orderField,
         string $orderDir,
         int    $page,
-        int    $perPage
+        int    $perPage,
+        ?float $priceMin = null,
+        ?float $priceMax = null,
+        ?int   $categoryId = null,
+        ?int   $goodTypeId = null
     ): array {
         $qb = $this->createQueryBuilder('g')
-            ->leftJoin('g.merchant', 'm')->addSelect('m')
-            ->leftJoin('m.city', 'c')->addSelect('c')
-            ->leftJoin('g.images', 'i')->addSelect('i')
-            ->leftJoin('g.category', 'cat')->addSelect('cat')
-            ->leftJoin('g.metalStandard', 'ms')->addSelect('ms')
-            ->leftJoin('ms.metal', 'mt')->addSelect('mt')
-            ->leftJoin('g.currency', 'cur')->addSelect('cur')
+            ->select('g')
+            ->leftJoin('g.merchant', 'm')
+            ->leftJoin('m.city', 'c')
+            ->leftJoin('g.category', 'cat')
+            ->leftJoin('g.goodType', 'gt')
             // Только активные товары на витрине
             ->where('g.status = :status')
             ->setParameter('status', Good::STATUS_ACTIVE);
@@ -37,8 +39,28 @@ class GoodRepository extends ServiceEntityRepository
                 ->setParameter('q', '%' . mb_strtolower($search) . '%');
         }
 
+        if ($priceMin !== null) {
+            $qb->andWhere('g.soldPrice >= :priceMin')
+                ->setParameter('priceMin', $priceMin);
+        }
+
+        if ($priceMax !== null) {
+            $qb->andWhere('g.soldPrice <= :priceMax')
+                ->setParameter('priceMax', $priceMax);
+        }
+
+        if ($categoryId !== null) {
+            $qb->andWhere('g.category = :categoryId')
+                ->setParameter('categoryId', $categoryId);
+        }
+
+        if ($goodTypeId !== null) {
+            $qb->andWhere('g.goodType = :goodTypeId')
+                ->setParameter('goodTypeId', $goodTypeId);
+        }
+
         if ($orderField === 'soldPrice') {
-            $qb->orderBy('CAST(g.soldPrice AS DECIMAL)', $orderDir);
+            $qb->orderBy('g.soldPrice', $orderDir);
         } else {
             $qb->orderBy("g.$orderField", $orderDir);
         }
@@ -50,8 +72,13 @@ class GoodRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function countForCatalog(string $search): int
-    {
+    public function countForCatalog(
+        string $search,
+        ?float $priceMin = null,
+        ?float $priceMax = null,
+        ?int   $categoryId = null,
+        ?int   $goodTypeId = null
+    ): int {
         $qb = $this->createQueryBuilder('g')
             ->select('COUNT(g.id)')
             ->leftJoin('g.merchant', 'm')
@@ -62,6 +89,26 @@ class GoodRepository extends ServiceEntityRepository
         if ($search !== '') {
             $qb->andWhere('LOWER(g.name) LIKE :q OR LOWER(m.name) LIKE :q OR LOWER(c.name) LIKE :q')
                 ->setParameter('q', '%' . mb_strtolower($search) . '%');
+        }
+
+        if ($priceMin !== null) {
+            $qb->andWhere('g.soldPrice >= :priceMin')
+                ->setParameter('priceMin', $priceMin);
+        }
+
+        if ($priceMax !== null) {
+            $qb->andWhere('g.soldPrice <= :priceMax')
+                ->setParameter('priceMax', $priceMax);
+        }
+
+        if ($categoryId !== null) {
+            $qb->andWhere('g.category = :categoryId')
+                ->setParameter('categoryId', $categoryId);
+        }
+
+        if ($goodTypeId !== null) {
+            $qb->andWhere('g.goodType = :goodTypeId')
+                ->setParameter('goodTypeId', $goodTypeId);
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();

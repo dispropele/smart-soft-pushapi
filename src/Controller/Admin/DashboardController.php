@@ -8,6 +8,9 @@ use App\Entity\PushApiLog;
 use App\Entity\Client;
 use App\Entity\LoanTicket;
 use App\Entity\LoanedItem;
+use App\Entity\GoodType;
+use App\Entity\StoneType;
+use App\Entity\MetalColor;
 use App\Controller\Admin\GoodCrudController;
 use App\Controller\Admin\HiddenGoodCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
@@ -45,6 +48,11 @@ class DashboardController extends AbstractDashboardController
             ->setController(GoodCrudController::class);
         yield MenuItem::linkToCrud('Товары (скрытые)', 'fa fa-eye-slash', Good::class)
             ->setController(HiddenGoodCrudController::class);
+
+        yield MenuItem::section('Справочники');
+        yield MenuItem::linkToCrud('Виды изделий', 'fa fa-ring', GoodType::class);
+        yield MenuItem::linkToCrud('Типы камней', 'fa fa-gem', StoneType::class);
+        yield MenuItem::linkToCrud('Цвета металлов', 'fa fa-palette', MetalColor::class);
 
         yield MenuItem::section('Структура');
         yield MenuItem::linkToCrud('Филиалы', 'fa fa-building', Merchant::class);

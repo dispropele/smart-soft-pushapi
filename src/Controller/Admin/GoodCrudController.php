@@ -128,6 +128,18 @@ class GoodCrudController extends AbstractCrudController
 
         yield TextField::new('size', 'Размер')
             ->onlyOnForms();
+
+        yield AssociationField::new('goodType', 'Вид изделия')
+            ->onlyOnForms();
+
+        yield AssociationField::new('stoneType', 'Тип камня')
+            ->onlyOnForms();
+
+        yield AssociationField::new('metalColor', 'Цвет металла')
+            ->onlyOnForms();
+
+        yield BooleanField::new('hasStones', 'С камнями')
+            ->onlyOnForms();
     }
 
     public function configureActions(Actions $actions): Actions

@@ -40,6 +40,21 @@ class Good
     #[ORM\JoinColumn(name: 'category_id', nullable: true)]
     private ?Category $category = null;
 
+    #[ORM\ManyToOne(targetEntity: GoodType::class, inversedBy: 'goods')]
+    #[ORM\JoinColumn(name: 'good_type_id', nullable: true)]
+    private ?GoodType $goodType = null;
+
+    #[ORM\Column(type: 'boolean', nullable: true)]
+    private ?bool $hasStone = false;
+
+    #[ORM\ManyToOne(targetEntity: StoneType::class)]
+    #[ORM\JoinColumn(name: 'stone_type_id', nullable: true)]
+    private ?StoneType $stoneType = null;
+
+    #[ORM\ManyToOne(targetEntity: MetalColor::class)]
+    #[ORM\JoinColumn(name: 'metal_color_id', nullable: true)]
+    private ?MetalColor $metalColor = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $specification = null;
 
@@ -168,6 +183,18 @@ class Good
 
     public function getMetalStandard(): ?MetalStandard { return $this->metalStandard; }
     public function setMetalStandard(?MetalStandard $metalStandard): static { $this->metalStandard = $metalStandard; return $this; }
+
+    public function getGoodType(): ?GoodType { return $this->goodType; }
+    public function setGoodType(?GoodType $goodType): static { $this->goodType = $goodType; return $this; }
+
+    public function isHasStone(): ?bool { return $this->hasStone; }
+    public function setHasStone(?bool $hasStone): static { $this->hasStone = $hasStone; return $this; }
+
+    public function getStoneType(): ?StoneType { return $this->stoneType; }
+    public function setStoneType(?StoneType $stoneType): static { $this->stoneType = $stoneType; return $this; }
+
+    public function getMetalColor(): ?MetalColor { return $this->metalColor; }
+    public function setMetalColor(?MetalColor $metalColor): static { $this->metalColor = $metalColor; return $this; }
 
     public function getImages(): Collection { return $this->images; }
 

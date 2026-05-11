@@ -63,9 +63,9 @@ mkdir -p /run
 
 # Start PHP-FPM in the background
 echo "Starting PHP-FPM..."
-php-fpm --no-daemonize &
+php-fpm -F &
 PHP_FPM_PID=$!
-sleep 1
+sleep 2
 
 # Give PHP-FPM time to create the socket
 sleep 1
@@ -74,7 +74,7 @@ sleep 1
 if [ ! -S /run/php-fpm.sock ]; then
   echo "WARNING: PHP-FPM socket not created, trying to start nginx anyway..."
 else
-  echo "✓ PHP-FPM socket created"
+  echo "✓ PHP-FPM socket created successfully"
 fi
 
 echo "✓ PHP-FPM started (PID: $PHP_FPM_PID)"

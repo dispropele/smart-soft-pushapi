@@ -69,6 +69,8 @@ WORKDIR /app
 # Create necessary directories
 RUN mkdir -p var/cache var/log public/uploads /var/log/nginx /run && \
     chmod -R 777 var public/uploads /var/log/nginx
+# Ensure PHP session directory exists and is writable
+RUN mkdir -p /var/lib/php/sessions && chown -R www-data:www-data /var/lib/php/sessions
 
 # Copy Nginx configuration
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf

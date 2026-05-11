@@ -1,5 +1,5 @@
 # Build stage
-from php:8.2-fpm-alpine as builder
+from php:8.4-fpm-alpine as builder
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -36,7 +36,7 @@ COPY . .
 RUN mkdir -p var/cache var/log && chmod -R 777 var
 
 # Runtime stage
-from php:8.2-fpm-alpine
+from php:8.4-fpm-alpine
 
 # Install runtime dependencies (no build tools)
 RUN apk add --no-cache \

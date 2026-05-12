@@ -8,7 +8,7 @@ framework:
         - 'x-forwarded-host'
         - 'x-forwarded-proto'
         - 'x-forwarded-port'
-    csrf_protection: true
+    csrf_protection: false
     # Note that the session will be started ONLY if you read or write from it.
 
     session:

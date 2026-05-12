@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'metal_standards')]
@@ -15,9 +16,12 @@ class MetalStandard
 
     #[ORM\ManyToOne(targetEntity: Metal::class)]
     #[ORM\JoinColumn(name: "metal_id",nullable: false)]
+    #[Assert\NotNull(message: 'Выберите металл.')]
     private ?Metal $metal = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Укажите пробу (например 585, 925).')]
+    #[Assert\Length(min: 1, max: 50)]
     private ?string $name = null;
 
     public function getId(): ?int

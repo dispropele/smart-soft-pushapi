@@ -32,29 +32,22 @@ class MetalStandardCrudController extends AbstractProtectedCrudController
     {
         yield IdField::new('id')->hideOnForm();
         yield AssociationField::new('metal', 'Металл')->autocomplete();
-        yield TextField::new('name', 'Проба (напр. 585, 925)');
+        yield TextField::new('name', 'Проба (напр. 585, 925)')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 50]]);
     }
 
     protected function getDeletionBlockMessage(mixed $entity): ?string
     {
         if (!$entity instanceof MetalStandard) return null;
 
-        $loanedCount = $this->em->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.metalStandard = :s'
+        $pledgedCount = (int) $this->em->createQuery(
+            'SELECT COUNT(p) FROM App\Entity\PledgedItem p WHERE p.metalStandard = :s'
         )->setParameter('s', $entity)->getSingleScalarResult();
 
-        $goodCount = $this->em->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.metalStandard = :s'
-        )->setParameter('s', $entity)->getSingleScalarResult();
-
-        if ($loanedCount + $goodCount > 0) {
-            $parts = [];
-            if ($loanedCount > 0) $parts[] = "{$loanedCount} предметов залога";
-            if ($goodCount   > 0) $parts[] = "{$goodCount} товаров";
-
+        if ($pledgedCount > 0) {
             return sprintf(
-                'Невозможно удалить пробу «%s»: она используется в %s.',
-                $entity, implode(', ', $parts)
+                'Невозможно удалить пробу «%s»: она используется в %d предметах залога.',
+                (string) $entity, $pledgedCount
             );
         }
 

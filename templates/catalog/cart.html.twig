@@ -33,20 +33,22 @@
                 {% if cover is null and good.images|length > 0 %}{% set cover = good.images|first %}{% endif %}
 
                 <div class="bg-white border border-gray-200 rounded-xl shadow-sm flex gap-4 p-4 hover:shadow-md transition" id="cart-item-{{ good.id }}">
-                    <a href="{{ path('app_product_show', {id: good.id}) }}"
+                    <a href="{{ path('app_item_show', {id: good.id}) }}"
                        class="shrink-0 w-24 h-24 border border-gray-100 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
                         <img src="{{ cover ? cover.preview : '/img/no-photo.png' }}" class="w-full h-full object-contain p-2">
                     </a>
 
                     <div class="flex-1 min-w-0 py-1">
-                        <a href="{{ path('app_product_show', {id: good.id}) }}"
+                        <a href="{{ path('app_item_show', {id: good.id}) }}"
                            class="text-base font-semibold text-gray-900 hover:text-yellow-600 transition leading-snug block truncate">
                             {{ good.name }}
                         </a>
+                        {% if good.metalStandard %}
                         <div class="text-sm text-gray-500 mt-1">
-                            {{ good.merchant.name }}
-                            {% if good.merchant.city %} · {{ good.merchant.city.name }}{% endif %}
+                            {{ good.metalStandard.metal.name }} {{ good.metalStandard.name }}
+                            {% if good.metalColor %} · {{ good.metalColor.name }}{% endif %}
                         </div>
+                        {% endif %}
                         <div class="text-xl font-bold text-gray-900 mt-2">
                             {{ good.soldPrice|number_format(0, '.', ' ') }}&thinsp;<span class="text-base font-normal text-gray-500">{{ good.currency ? good.currency.currency : '₽' }}</span>
                         </div>
@@ -76,10 +78,10 @@
                 </div>
 
                 <button class="w-full py-3.5 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-lg transition shadow-md"
-                        onclick="alert('Для резервирования позвоните в выбранный филиал')">
+                        onclick="alert('Для резервирования свяжитесь с ломбардом по телефону.')">
                     Оформить заявку
                 </button>
-                <p class="text-sm text-gray-500 text-center mt-4">Резервирование по звонку в филиал</p>
+                <p class="text-sm text-gray-500 text-center mt-4">Резервирование по телефону</p>
             </div>
         </div>
     </div>

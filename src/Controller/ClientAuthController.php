@@ -23,8 +23,8 @@ class ClientAuthController extends AbstractController
         $error = null;
 
         if ($request->isMethod('POST')) {
-            $fullName = trim($request->request->get('fullName', ''));
-            $ticketNumber = trim($request->request->get('ticketNumber', ''));
+            $fullName = trim(preg_replace('/\s+/u', ' ', (string) $request->request->get('fullName', '')));
+            $ticketNumber = trim((string) $request->request->get('ticketNumber', ''));
 
             if (!$fullName || !$ticketNumber) {
                 $error = 'Пожалуйста, заполните все поля';
@@ -33,7 +33,7 @@ class ClientAuthController extends AbstractController
 
                 if ($ticket instanceof LoanTicket) {
                     $client = $ticket->getClient();
-                    $session->set('client_id', $client->getId());
+                    $session->set('client_id', (int) $client->getId());
                     $session->set('client_name', $client->getFullName());
 
                     return $this->redirectToRoute('app_client_cabinet');

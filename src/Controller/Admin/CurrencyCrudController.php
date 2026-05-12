@@ -30,8 +30,10 @@ class CurrencyCrudController extends AbstractProtectedCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('currency', 'Символ (₽, $, €)');
-        yield TextField::new('name', 'Название');
+        yield TextField::new('currency', 'Символ (₽, $, €)')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 50]]);
+        yield TextField::new('name', 'Название')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 255]]);
     }
 
     protected function getDeletionBlockMessage(mixed $entity): ?string
@@ -39,12 +41,12 @@ class CurrencyCrudController extends AbstractProtectedCrudController
         if (!$entity instanceof Currency) return null;
 
         $count = $this->em->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.currency = :cur'
+            'SELECT COUNT(p) FROM App\Entity\PledgedItem p WHERE p.currency = :cur'
         )->setParameter('cur', $entity)->getSingleScalarResult();
 
         if ($count > 0) {
             return sprintf(
-                'Невозможно удалить валюту «%s»: она используется в %d товарах.',
+                'Невозможно удалить валюту «%s»: она используется в %d предметах залога.',
                 $entity->getCurrency(), $count
             );
         }

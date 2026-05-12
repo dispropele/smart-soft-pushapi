@@ -4,7 +4,8 @@ namespace App\Command;
 
 use App\Entity\Category;
 use App\Entity\GoodType;
-use App\Entity\StoneType;
+use App\Entity\Insert;
+use App\Entity\InsertType;
 use App\Entity\MetalColor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -13,7 +14,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-#[AsCommand(name: 'app:seed-jewelry', description: 'Заполняет БД справочниками ювелирных типов, камней и цветов металлов')]
+#[AsCommand(name: 'app:seed-jewelry', description: 'Дополняет БД справочниками ювелирных типов, камней и цветов металлов (русские названия)')]
 class SeedJewelryCommand extends Command
 {
     public function __construct(private EntityManagerInterface $em)
@@ -25,29 +26,50 @@ class SeedJewelryCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        // Типы камней
-        $stoneTypes = [
-            ['code' => 'diamond', 'name' => 'Бриллиант'],
-            ['code' => 'cubic_zirconia', 'name' => 'Фианит'],
-            ['code' => 'emerald', 'name' => 'Изумруд'],
-            ['code' => 'sapphire', 'name' => 'Сапфир'],
-            ['code' => 'ruby', 'name' => 'Рубин'],
-            ['code' => 'topaz', 'name' => 'Топаз'],
-            ['code' => 'amethyst', 'name' => 'Аметист'],
+        $insertTypeDefs = [
+            'Драгоценные камни',
+            'Полудрагоценные камни',
+            'Синтетические вставки',
         ];
 
-        foreach ($stoneTypes as $data) {
-            $existing = $this->em->getRepository(StoneType::class)->findOneBy(['code' => $data['code']]);
+        foreach ($insertTypeDefs as $typeName) {
+            $existing = $this->em->getRepository(InsertType::class)->findOneBy(['name' => $typeName]);
             if (!$existing) {
-                $stone = new StoneType();
-                $stone->setCode($data['code']);
-                $stone->setName($data['name']);
-                $this->em->persist($stone);
-                $io->writeln('✓ Создан тип камня: ' . $data['name']);
+                $type = new InsertType();
+                $type->setName($typeName);
+                $this->em->persist($type);
+                $io->writeln('✓ Создан тип вставки: ' . $typeName);
             }
         }
+        $this->em->flush();
 
-        // Цвета металлов
+        $insertDefs = [
+            ['Бриллиант', 'Драгоценные камни'],
+            ['Фианит', 'Синтетические вставки'],
+            ['Изумруд', 'Драгоценные камни'],
+            ['Сапфир', 'Драгоценные камни'],
+            ['Рубин', 'Драгоценные камни'],
+            ['Топаз', 'Полудрагоценные камни'],
+            ['Аметист', 'Полудрагоценные камни'],
+        ];
+
+        foreach ($insertDefs as [$insertName, $typeName]) {
+            $existing = $this->em->getRepository(Insert::class)->findOneBy(['name' => $insertName]);
+            if ($existing) {
+                continue;
+            }
+            $type = $this->em->getRepository(InsertType::class)->findOneBy(['name' => $typeName]);
+            if (!$type) {
+                continue;
+            }
+            $insert = new Insert();
+            $insert->setName($insertName);
+            $insert->setInsertType($type);
+            $this->em->persist($insert);
+            $io->writeln('✓ Создана вставка: ' . $insertName);
+        }
+        $this->em->flush();
+
         $metalColors = [
             ['code' => 'yellow_gold', 'name' => 'Жёлтое золото'],
             ['code' => 'white_gold', 'name' => 'Белое золото'],
@@ -68,16 +90,13 @@ class SeedJewelryCommand extends Command
             }
         }
 
-        // Виды изделий (группированы по категориям)
         $categories = $this->em->getRepository(Category::class)->findAll();
 
-        // Универсальные типы для всех категорий
         $universalTypes = [
             ['code' => 'with_stones', 'name' => 'С камнями', 'has_stones' => true],
             ['code' => 'no_stones', 'name' => 'Без вставок', 'has_stones' => false],
         ];
 
-        // Типы специфичные для конкретных категорий
         $categorySpecificTypes = [
             'Кольца' => [
                 ['code' => 'wedding_rings', 'name' => 'Обручальные', 'has_stones' => false],
@@ -85,9 +104,9 @@ class SeedJewelryCommand extends Command
                 ['code' => 'cocktail_rings', 'name' => 'Коктейльные', 'has_stones' => true],
             ],
             'Серьги' => [
-                ['code' => 'stud_earrings', 'name' => 'Гвоздики', 'has_stones' => true],
-                ['code' => 'drop_earrings', 'name' => 'Висячие', 'has_stones' => true],
-                ['code' => 'hoops', 'name' => 'Кольца', 'has_stones' => false],
+                ['code' => 'stud_earrings', 'name' => 'Пусеты', 'has_stones' => true],
+                ['code' => 'drop_earrings', 'name' => 'Длинные', 'has_stones' => true],
+                ['code' => 'hoops', 'name' => 'Конго', 'has_stones' => false],
             ],
             'Цепи' => [
                 ['code' => 'thin_chains', 'name' => 'Тонкие', 'has_stones' => false],
@@ -96,12 +115,11 @@ class SeedJewelryCommand extends Command
             'Браслеты' => [
                 ['code' => 'tennis_bracelets', 'name' => 'Теннисные', 'has_stones' => true],
                 ['code' => 'charm_bracelets', 'name' => 'С подвесками', 'has_stones' => true],
-                ['code' => 'bangles', 'name' => 'Браслеты-жёсткие', 'has_stones' => false],
+                ['code' => 'bangles', 'name' => 'Жёсткие', 'has_stones' => false],
             ],
         ];
 
         foreach ($categories as $category) {
-            // Добавляем универсальные типы
             foreach ($universalTypes as $data) {
                 $existing = $this->em->getRepository(GoodType::class)->findOneBy([
                     'code' => $data['code'],
@@ -114,11 +132,10 @@ class SeedJewelryCommand extends Command
                     $type->setCategory($category);
                     $type->setHasStones($data['has_stones']);
                     $this->em->persist($type);
-                    $io->writeln("✓ Для категории '{$category->getName()}' создан вид: {$data['name']}");
+                    $io->writeln("✓ Для категории «{$category->getName()}» создан вид: {$data['name']}");
                 }
             }
 
-            // Добавляем специфичные типы
             if (isset($categorySpecificTypes[$category->getName()])) {
                 foreach ($categorySpecificTypes[$category->getName()] as $data) {
                     $existing = $this->em->getRepository(GoodType::class)->findOneBy([
@@ -132,7 +149,7 @@ class SeedJewelryCommand extends Command
                         $type->setCategory($category);
                         $type->setHasStones($data['has_stones']);
                         $this->em->persist($type);
-                        $io->writeln("✓ Для категории '{$category->getName()}' создан вид: {$data['name']}");
+                        $io->writeln("✓ Для категории «{$category->getName()}» создан вид: {$data['name']}");
                     }
                 }
             }
@@ -140,7 +157,7 @@ class SeedJewelryCommand extends Command
 
         $this->em->flush();
 
-        $io->success('Справочники ювелирных данных успешно заполнены!');
+        $io->success('Справочники ювелирных данных обновлены.');
         return Command::SUCCESS;
     }
 }

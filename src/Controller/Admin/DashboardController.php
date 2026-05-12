@@ -2,21 +2,21 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Good;
-use App\Entity\Merchant;
-use App\Entity\PushApiLog;
-use App\Entity\Client;
-use App\Entity\LoanTicket;
-use App\Entity\LoanedItem;
-use App\Entity\GoodType;
-use App\Entity\StoneType;
-use App\Entity\MetalColor;
 use App\Entity\Category;
+use App\Entity\City;
+use App\Entity\Client;
+use App\Entity\Currency;
+use App\Entity\GoodType;
+use App\Entity\Insert;
+use App\Entity\InsertType;
+use App\Entity\LoanTicket;
 use App\Entity\Metal;
+use App\Entity\MetalColor;
 use App\Entity\MetalStandard;
-use App\Controller\Admin\GoodCrudController;
-use App\Controller\Admin\HiddenGoodCrudController;
+use App\Entity\PledgedItem;
+use App\Entity\PushApiLog;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
@@ -37,6 +37,15 @@ class DashboardController extends AbstractDashboardController
             ->renderContentMaximized();
     }
 
+    public function configureAssets(): Assets
+    {
+        return parent::configureAssets()
+            ->addAssetMapperEntry('app')
+            ->addHtmlContentToBody(
+                '<div data-controller="admin-form-mask" id="ea-admin-form-mask" hidden aria-hidden="true"></div>'
+            );
+    }
+
     public function configureMenuItems(): iterable
     {
         yield MenuItem::linkToDashboard('Сводка', 'fa fa-home');
@@ -44,24 +53,18 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Ломбард');
         yield MenuItem::linkToCrud('Клиенты', 'fa fa-users', Client::class);
         yield MenuItem::linkToCrud('Залоговые билеты', 'fa fa-file-text', LoanTicket::class);
-        yield MenuItem::linkToCrud('Заложенное имущество', 'fa fa-box', LoanedItem::class);
-
-        yield MenuItem::section('Витрина');
-        yield MenuItem::linkToCrud('Товары (активные)', 'fa fa-shopping-bag', Good::class)
-            ->setController(GoodCrudController::class);
-        yield MenuItem::linkToCrud('Товары (скрытые)', 'fa fa-eye-slash', Good::class)
-            ->setController(HiddenGoodCrudController::class);
+        yield MenuItem::linkToCrud('Предметы залога / Витрина', 'fa fa-cubes', PledgedItem::class);
 
         yield MenuItem::section('Справочники');
         yield MenuItem::linkToCrud('Категории', 'fa fa-tags', Category::class);
         yield MenuItem::linkToCrud('Виды изделий', 'fa fa-ring', GoodType::class);
-        yield MenuItem::linkToCrud('Типы камней', 'fa fa-gem', StoneType::class);
+        yield MenuItem::linkToCrud('Типы вставок', 'fa fa-gem', InsertType::class);
+        yield MenuItem::linkToCrud('Вставки', 'fa fa-diamond', Insert::class);
         yield MenuItem::linkToCrud('Цвета металлов', 'fa fa-palette', MetalColor::class);
         yield MenuItem::linkToCrud('Металлы', 'fa fa-cubes', Metal::class);
         yield MenuItem::linkToCrud('Пробы', 'fa fa-certificate', MetalStandard::class);
-
-        yield MenuItem::section('Структура');
-        yield MenuItem::linkToCrud('Филиалы', 'fa fa-building', Merchant::class);
+        yield MenuItem::linkToCrud('Валюты', 'fa fa-money', Currency::class);
+        yield MenuItem::linkToCrud('Города', 'fa fa-map-marker', City::class);
 
         yield MenuItem::section('Система');
         yield MenuItem::linkToCrud('Логи Push API', 'fa fa-list-alt', PushApiLog::class);

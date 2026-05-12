@@ -30,31 +30,11 @@
             <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">База клиентов</span>
         </a>
 
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanedItemCrudController') }}"
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\PledgedItemCrudController') }}"
            class="ea-dashboard-card">
             <i class="fa fa-box" style="font-size:1.8rem;color:#7a9fb5;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Заложенное имущество</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Вещи в залоге</span>
-        </a>
-    </div>
-
-    {# ВИТРИНА #}
-    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
-        <i class="fa fa-shopping-bag" style="margin-right:0.5rem;color:#d4a574"></i> Витрина
-    </h3>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\GoodCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-cubes" style="font-size:1.8rem;color:#60b060;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Активные товары</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">На продаже</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\HiddenGoodCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-eye-slash" style="font-size:1.8rem;color:#f0ad4e;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Скрытые товары</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Архив</span>
+            <span style="font-weight:600">Предметы залога</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Залог и витрина</span>
         </a>
     </div>
 
@@ -93,23 +73,29 @@
             <span>Виды изделий</span>
         </a>
 
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\StoneTypeCrudController') }}"
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\InsertTypeCrudController') }}"
            class="ea-dashboard-card">
             <i class="fa fa-gem" style="font-size:1.6rem;color:#00ced1;margin-bottom:.6rem"></i>
-            <span>Типы камней</span>
+            <span>Типы вставок</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\InsertCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-diamond" style="font-size:1.6rem;color:#5bc0de;margin-bottom:.6rem"></i>
+            <span>Вставки</span>
         </a>
     </div>
 
-    {# СТРУКТУРА #}
+    {# ГОРОДА #}
     <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
-        <i class="fa fa-building" style="margin-right:0.5rem;color:#8b7355"></i> Структура
+        <i class="fa fa-map-marker" style="margin-right:0.5rem;color:#8b7355"></i> География
     </h3>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\MerchantCrudController') }}"
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\CityCrudController') }}"
            class="ea-dashboard-card">
-            <i class="fa fa-map-marker" style="font-size:1.8rem;color:#c41e3a;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Филиалы</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Отделения</span>
+            <i class="fa fa-building-o" style="font-size:1.8rem;color:#5a7a8c;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Города</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Справочник</span>
         </a>
     </div>
 
@@ -134,7 +120,7 @@
         <strong>Залоговые билеты</strong> — основной документ залога с информацией о сумме займа, ставке и сроке.<br>
         <strong>Заложенное имущество</strong> — описание каждого предмета (тип, металл, проба, вес, оценка).<br>
         <strong>Справочники</strong> — классификаторы и справочные данные (категории, металлы, пробы и т.д.).<br>
-        <strong>Логи Push API</strong> — история синхронизации данных с филиалами через вебхуки.<br>
+        <strong>Логи Push API</strong> — история входящих вебхуков (товары и события).<br>
     </div>
 </div>
 

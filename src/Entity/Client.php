@@ -18,25 +18,32 @@ class Client
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Укажите ФИО.')]
+    #[Assert\Length(min: 2, max: 255)]
     private ?string $fullName = null;
 
     #[ORM\Column(length: 20)]
-    #[Assert\NotBlank]
-    #[Assert\Regex(pattern: '/^\d+$/', message: 'Допустимы только цифры')]
+    #[Assert\NotBlank(message: 'Укажите номер паспорта.')]
+    #[Assert\Regex(pattern: '/^\d{6}$/', message: 'Номер паспорта — ровно 6 цифр.')]
     private ?string $passportNumber = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Assert\Regex(pattern: '/^\d*$/', message: 'Допустимы только цифры')]
+    #[Assert\Regex(pattern: '/^(\d{4})?$/', message: 'Серия паспорта — 4 цифры или оставьте пустым.')]
     private ?string $passportSeries = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(max: 2000)]
     private ?string $address = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Assert\Regex(pattern: '/^\d*$/', message: 'Допустимы только цифры')]
+    #[Assert\Regex(pattern: '/^(\d{10,11})?$/', message: 'Телефон: 10–11 цифр (без + и скобок).')]
     private ?string $phone = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Optional([
+        new Assert\Email(message: 'Некорректный e-mail.'),
+        new Assert\Length(max: 100),
+    ])]
     private ?string $email = null;
 
     #[ORM\Column(type: 'datetime_immutable')]

@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin;
 
+use App\Admin\AdminFormAttributes;
 use App\Entity\Client;
 use App\Entity\LoanTicket;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,15 +30,18 @@ class ClientCrudController extends AbstractProtectedCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('fullName', 'ФИО');
+        yield TextField::new('fullName', 'ФИО')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 255]]);
         yield TextField::new('passportNumber', 'Номер паспорта')
-            ->setFormTypeOptions(['attr' => ['inputmode' => 'numeric', 'pattern' => '[0-9]*', 'autocomplete' => 'off']]);
+            ->setFormTypeOptions(array_merge(['required' => true], AdminFormAttributes::passportNumber()));
         yield TextField::new('passportSeries', 'Серия паспорта')
-            ->setFormTypeOptions(['attr' => ['inputmode' => 'numeric', 'pattern' => '[0-9]*', 'autocomplete' => 'off']]);
-        yield TextField::new('address', 'Адрес');
+            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::passportSeries()));
+        yield TextField::new('address', 'Адрес')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 2000], 'required' => false]);
         yield TextField::new('phone', 'Телефон')
-            ->setFormTypeOptions(['attr' => ['inputmode' => 'numeric', 'pattern' => '[0-9]*', 'autocomplete' => 'off']]);
-        yield TextField::new('email', 'Email');
+            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::phoneDigits()));
+        yield TextField::new('email', 'Email')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 100], 'required' => false]);
         yield DateTimeField::new('createdAt', 'Дата создания')
             ->setFormat('dd.MM.yyyy HH:mm')
             ->hideOnForm();

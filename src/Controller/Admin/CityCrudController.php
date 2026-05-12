@@ -30,24 +30,7 @@ class CityCrudController extends AbstractProtectedCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('name', 'Название');
-    }
-
-    protected function getDeletionBlockMessage(mixed $entity): ?string
-    {
-        if (!$entity instanceof City) return null;
-
-        $count = $this->em->createQuery(
-            'SELECT COUNT(m) FROM App\\Entity\\Merchant m WHERE m.city = :city'
-        )->setParameter('city', $entity)->getSingleScalarResult();
-
-        if ($count > 0) {
-            return sprintf(
-                'Невозможно удалить город «%s»: он привязан к %d филиалам. Сначала измените город у филиалов.',
-                $entity->getName(), $count
-            );
-        }
-
-        return null;
+        yield TextField::new('name', 'Название')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 255]]);
     }
 }

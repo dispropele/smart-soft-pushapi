@@ -32,7 +32,8 @@ class CategoryCrudController extends AbstractProtectedCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('name', 'Название');
+        yield TextField::new('name', 'Название')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 255]]);
     }
 
     public function configureActions(Actions $actions): Actions
@@ -52,6 +53,17 @@ class CategoryCrudController extends AbstractProtectedCrudController
             return sprintf(
                 'Невозможно удалить категорию «%s»: она используется в %d видах изделий. Сначала удалите или переназначьте их.',
                 $entity->getName(), $count
+            );
+        }
+
+        $pledged = (int) $this->em->createQuery(
+            'SELECT COUNT(p) FROM App\Entity\PledgedItem p WHERE p.category = :cat'
+        )->setParameter('cat', $entity)->getSingleScalarResult();
+
+        if ($pledged > 0) {
+            return sprintf(
+                'Невозможно удалить категорию «%s»: с ней связано %d предметов залога.',
+                $entity->getName(), $pledged
             );
         }
 

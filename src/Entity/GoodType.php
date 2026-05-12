@@ -2,8 +2,6 @@
 
 namespace App\Entity;
 
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
@@ -29,12 +27,14 @@ class GoodType
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $hasStones = false;
 
-    #[ORM\OneToMany(mappedBy: 'goodType', targetEntity: Good::class)]
-    private Collection $goods;
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $coating = null; // Покрытие (родий, позолота и т.д.)
+
+    public function getCoating(): ?string { return $this->coating; }
+    public function setCoating(?string $coating): static { $this->coating = $coating; return $this; }   
 
     public function __construct()
     {
-        $this->goods = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -52,24 +52,4 @@ class GoodType
     public function setCategory(?Category $category): static { $this->category = $category; return $this; }
     public function isHasStones(): bool { return $this->hasStones; }
     public function setHasStones(bool $hasStones): static { $this->hasStones = $hasStones; return $this; }
-    public function getGoods(): Collection { return $this->goods; }
-
-    public function addGood(Good $good): static
-    {
-        if (!$this->goods->contains($good)) {
-            $this->goods->add($good);
-            $good->setGoodType($this);
-        }
-        return $this;
-    }
-
-    public function removeGood(Good $good): static
-    {
-        if ($this->goods->removeElement($good)) {
-            if ($good->getGoodType() === $this) {
-                $good->setGoodType(null);
-            }
-        }
-        return $this;
-    }
 }

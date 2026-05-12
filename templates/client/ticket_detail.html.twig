@@ -1,10 +1,9 @@
-{% extends "base.html.twig" %}
+{% extends 'base.html.twig' %}
 
 {% block title %}Билет {{ ticket.ticketNumber }} — Аурум Ломбард{% endblock %}
 
 {% block body %}
 <div class="space-y-6 max-w-5xl mx-auto">
-    {# Шапка #}
     <div class="flex items-center gap-3 mb-2">
         <a href="{{ path('app_client_cabinet') }}" class="text-[#7a9fb5] hover:text-[#2d6ca2] transition inline-flex items-center gap-1 text-sm font-bold uppercase tracking-wide">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -19,19 +18,24 @@
         <p class="text-[#333] mt-1 font-mono text-lg">{{ ticket.ticketNumber }}</p>
     </div>
 
-    {# Инфо о билете #}
     <div class="bg-white rounded-[3px] shadow-sm border border-[#c8d7e1] overflow-hidden">
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Статус</p>
                     <div class="mt-2">
-                        {% if ticket.isOpen() %}
-                            <span class="inline-block bg-[#e1f0f5] text-[#1d4e75] px-3 py-1 rounded-[2px] text-xs font-bold border border-[#c8d7e1]">Активен</span>
-                        {% elseif ticket.isClosed() %}
+                        {% if ticket.status == 'open' %}
+                            <span class="inline-block bg-[#e1f0f5] text-[#1d4e75] px-3 py-1 rounded-[2px] text-xs font-bold border border-[#c8d7e1]">Открыт</span>
+                        {% elseif ticket.status == 'grace' %}
+                            <span class="inline-block bg-[#fff3cd] text-[#856404] px-3 py-1 rounded-[2px] text-xs font-bold border border-[#ffc107]">Льготный период</span>
+                        {% elseif ticket.status == 'closed' %}
                             <span class="inline-block bg-gray-100 text-gray-600 px-3 py-1 rounded-[2px] text-xs font-bold border border-gray-200">Закрыт</span>
-                        {% else %}
+                        {% elseif ticket.status == 'repledged' %}
+                            <span class="inline-block bg-[#e1f0f5] text-[#1d4e75] px-3 py-1 rounded-[2px] text-xs font-bold border border-[#c8d7e1]">Перезалог</span>
+                        {% elseif ticket.status == 'expired' %}
                             <span class="inline-block bg-[#fdf3f3] text-[#721c24] px-3 py-1 rounded-[2px] text-xs font-bold border border-[#f5c6cb]">Просрочен</span>
+                        {% else %}
+                            <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-[2px] text-xs font-bold border border-gray-200">{{ ticket.status }}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -58,7 +62,7 @@
                     <div>
                         <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Дней до срока</p>
                         <p class="text-base font-bold mt-1">
-                            {% set daysLeft = ((ticket.returnDate.timestamp - 'now'|date('U')) / 86400)|round(0, 'ceil') %}
+                            {% set daysLeft = ((ticket.returnDate|date('U') - 'now'|date('U')) / 86400)|round(0, 'ceil') %}
                             {% if daysLeft > 7 %}
                                 <span class="text-[#60b060]">{{ daysLeft }}</span>
                             {% elseif daysLeft > 0 %}
@@ -74,8 +78,14 @@
                     <div class="bg-[#e1f0f5] p-4 rounded-[2px] border border-[#c8d7e1]">
                         <p class="text-xs font-bold text-[#1d4e75] uppercase tracking-wide">Сумма к возврату</p>
                         <p class="text-3xl font-bold text-[#1d4e75] mt-2">{{ ticket.returnAmount }} ₽</p>
-                        <p class="text-xs text-[#7a9fb5] mt-1">Включает процентную ставку</p>
+                        <p class="text-xs text-[#7a9fb5] mt-1">С учётом процентной ставки за основной срок</p>
                     </div>
+                    {% if ticket.graceDays > 0 %}
+                    <div class="bg-[#fff8e5] p-4 rounded-[2px] border border-[#f0e0a8] mt-4">
+                        <p class="text-xs font-bold text-[#856404] uppercase tracking-wide">При льготном периоде (оценочно)</p>
+                        <p class="text-xl font-bold text-[#856404] mt-2">{{ ticket.graceReturnAmount }} ₽</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -88,7 +98,6 @@
         </div>
     </div>
 
-    {# Вещи в залоге #}
     <div class="bg-white rounded-[3px] shadow-sm border border-[#c8d7e1] overflow-hidden">
         <div class="bg-[#f8fbfd] border-b border-[#c8d7e1] px-5 py-3 font-bold text-[#1d4e75] flex items-center gap-2">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" /></svg>
@@ -96,40 +105,58 @@
         </div>
 
         <div class="p-5">
-            {% if ticket.loanedItems|length > 0 %}
+            {% if ticket.pledgedItems|length > 0 %}
                 <div class="space-y-4">
-                    {% for item in ticket.loanedItems %}
+                    {% for item in ticket.pledgedItems %}
                         <div class="border border-[#c8d7e1] rounded-[3px] p-5 bg-white shadow-sm">
                             <h3 class="text-base font-bold text-[#1d4e75] mb-4">{{ item.name }}</h3>
 
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                {% if item.jewelryType %}
+                                {% if item.category %}
                                     <div>
-                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Тип</p>
-                                        <p class="text-[#333] text-sm mt-1">{{ item.jewelryType }}</p>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Категория</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.category.name }}</p>
                                     </div>
                                 {% endif %}
-                                {% if item.metal %}
+                                {% if item.goodType %}
                                     <div>
-                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Металл</p>
-                                        <p class="text-[#333] text-sm mt-1">{{ item.metal }}</p>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вид</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.goodType.name }}</p>
                                     </div>
                                 {% endif %}
                                 {% if item.metalStandard %}
                                     <div>
-                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Проба</p>
-                                        <p class="text-[#333] text-sm mt-1">{{ item.metalStandard }}</p>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Металл / проба</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.metalStandard.metal.name }} {{ item.metalStandard.name }}</p>
                                     </div>
                                 {% endif %}
-                                {% if item.weight %}
+                                {% if item.metalColor %}
+                                    <div>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Цвет</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.metalColor.name }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if item.insert %}
+                                    <div>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вставка</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.insert.name }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if item.itemWeight %}
+                                    <div>
+                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вес изделия</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.itemWeight }} г</p>
+                                    </div>
+                                {% endif %}
+                                {% if item.scrapWeight %}
                                     <div>
                                         <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вес лома</p>
-                                        <p class="text-[#333] text-sm mt-1">{{ item.weight }} г</p>
+                                        <p class="text-[#333] text-sm mt-1">{{ item.scrapWeight }} г</p>
                                     </div>
                                 {% endif %}
                                 <div class="bg-[#e1f0f5] p-2 rounded-[2px] border border-[#c8d7e1] md:col-span-2">
                                     <p class="text-xs font-bold text-[#1d4e75] uppercase tracking-wide">Оценка</p>
-                                    <p class="text-[#1d4e75] font-bold mt-0.5">{{ item.estimatedValue }} ₽</p>
+                                    <p class="text-[#1d4e75] font-bold mt-0.5">{% if item.estimatedValue %}{{ item.estimatedValue }} ₽{% else %}—{% endif %}</p>
                                 </div>
                             </div>
                             {% if item.description %}

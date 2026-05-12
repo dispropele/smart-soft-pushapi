@@ -4,7 +4,7 @@ framework:
 
     trusted_proxies: '127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,REMOTE_ADDR'
     trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port']
-    trusted_hosts: ['smart-soft-xdls\.onrender\.com', 'localhost']
+    trusted_hosts: ['127.0.0.1', 'localhost', 'smart-soft-xdls\.onrender\.com']
     csrf_protection: true
     # Note that the session will be started ONLY if you read or write from it.
 
@@ -19,6 +19,10 @@ framework:
 
     #esi: true
     #fragments: true
+
+when@dev:
+    framework:
+        trusted_hosts: ~
 
 when@test:
     framework:

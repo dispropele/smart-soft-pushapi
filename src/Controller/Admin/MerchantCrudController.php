@@ -64,7 +64,7 @@ class MerchantCrudController extends AbstractProtectedCrudController
 
         if ($count > 0) {
             return sprintf(
-                'Невозможно удалить филиал «%s»: с ним связано %d товаров. Сначала переназначьте или удалите товары.',
+                'Невозможно удалить филиал «%s»: с ним связано %d предметов залога. Сначала переназначьте или удалите их.',
                 $entity->getName(), $count
             );
         }

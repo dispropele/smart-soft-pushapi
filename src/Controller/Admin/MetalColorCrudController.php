@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin;
 
+use App\Admin\AdminFormAttributes;
 use App\Entity\MetalColor;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -23,7 +24,7 @@ class MetalColorCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Цвет металла')
             ->setEntityLabelInPlural('Цвета металлов')
-            ->setDefaultSort(['metal.name' => 'ASC', 'name' => 'ASC'])
+            ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
     }
@@ -31,33 +32,27 @@ class MetalColorCrudController extends AbstractProtectedCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield AssociationField::new('metal', 'Металл')->autocomplete()->setRequired(true);
-        yield TextField::new('name', 'Название');
-        yield TextField::new('code', 'Код')
-            ->onlyOnDetail()
-            ->formatValue(fn($v) => $v ?? '—');
+        yield TextField::new('code', 'Код')->onlyOnIndex();
+        yield AssociationField::new('metal', 'Металл')->autocomplete()->setRequired(false);
+        yield TextField::new('name', 'Название')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 100]]);
+        yield TextField::new('code', 'Код (латиница)')
+            ->setRequired(false)
+            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::slugCode()));
     }
 
     protected function getDeletionBlockMessage(mixed $entity): ?string
     {
         if (!$entity instanceof MetalColor) return null;
 
-        $loanedCount = $this->em->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.metalColor = :c'
+        $pledgedCount = (int) $this->em->createQuery(
+            'SELECT COUNT(p) FROM App\Entity\PledgedItem p WHERE p.metalColor = :c'
         )->setParameter('c', $entity)->getSingleScalarResult();
 
-        $goodCount = $this->em->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.metalColor = :c'
-        )->setParameter('c', $entity)->getSingleScalarResult();
-
-        if ($loanedCount + $goodCount > 0) {
-            $parts = [];
-            if ($loanedCount > 0) $parts[] = "{$loanedCount} предметов залога";
-            if ($goodCount   > 0) $parts[] = "{$goodCount} товаров";
-
+        if ($pledgedCount > 0) {
             return sprintf(
-                'Невозможно удалить цвет «%s»: он используется в %s.',
-                $entity->getName(), implode(', ', $parts)
+                'Невозможно удалить цвет «%s»: он используется в %d предметах залога.',
+                $entity->getName(), $pledgedCount
             );
         }
 

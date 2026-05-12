@@ -59,9 +59,9 @@
         </div>
 
         <div class="p-5">
-            {% if openTickets|length > 0 %}
+            {% if activeTickets|length > 0 %}
                 <div class="space-y-4">
-                    {% for ticket in openTickets %}
+                    {% for ticket in activeTickets %}
                         <div class="border border-[#c8d7e1] rounded-[3px] p-5 hover:border-[#2d6ca2] transition bg-[#f8fbfd]">
                             <div class="flex justify-between items-start mb-4">
                                 <div class="flex-1">
@@ -73,7 +73,7 @@
                                     </p>
                                 </div>
                                 <span class="inline-block bg-[#e1f0f5] text-[#1d4e75] text-xs font-bold px-3 py-1 rounded-[2px] border border-[#c8d7e1]">
-                                    Активен
+                                    {% if ticket.status == 'grace' %}Льготный период{% else %}Активен{% endif %}
                                 </span>
                             </div>
 
@@ -93,7 +93,7 @@
                                 <div>
                                     <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">До</p>
                                     <p class="text-base font-semibold mt-1">
-                                        {% set daysLeft = ((ticket.returnDate.timestamp - 'now'|date('U')) / 86400)|round(0, 'ceil') %}
+                                        {% set daysLeft = ((ticket.returnDate|date('U') - 'now'|date('U')) / 86400)|round(0, 'ceil') %}
                                         {% if daysLeft > 7 %}
                                             <span class="text-[#333]">{{ ticket.returnDate|date('d.m.Y') }}</span>
                                         {% elseif daysLeft > 0 %}
@@ -105,14 +105,14 @@
                                 </div>
                             </div>
 
-                            {% if ticket.loanedItems|length > 0 %}
+                            {% if ticket.pledgedItems|length > 0 %}
                                 <div>
                                     <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide mb-2">Заложено:</p>
                                     <div class="flex flex-wrap gap-2">
-                                        {% for item in ticket.loanedItems %}
+                                        {% for item in ticket.pledgedItems %}
                                             <div class="bg-white border border-[#c8d7e1] rounded-[2px] px-3 py-2 text-sm shadow-sm">
                                                 <p class="font-medium text-[#333]">{{ item.name }}</p>
-                                                <p class="text-[#7a9fb5] text-xs font-bold mt-0.5">{{ item.estimatedValue }} ₽</p>
+                                                <p class="text-[#7a9fb5] text-xs font-bold mt-0.5">{% if item.estimatedValue %}{{ item.estimatedValue }} ₽{% else %}—{% endif %}</p>
                                             </div>
                                         {% endfor %}
                                     </div>
@@ -132,6 +132,32 @@
                 <div class="text-center py-10">
                     <p class="text-[#7a9fb5] text-base">У вас нет открытых залоговых билетов</p>
                 </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[3px] shadow-sm border border-[#c8d7e1] overflow-hidden">
+        <div class="bg-[#f8fbfd] border-b border-[#c8d7e1] px-5 py-3 font-bold text-[#1d4e75] flex items-center gap-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+            История билетов
+        </div>
+        <div class="p-5">
+            {% if historyTickets|length > 0 %}
+                <ul class="divide-y divide-[#e1f0f5]">
+                    {% for ticket in historyTickets %}
+                        <li class="py-4 flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <a href="{{ path('app_client_ticket_detail', {ticketNumber: ticket.ticketNumber}) }}" class="font-mono font-bold text-[#2d6ca2] hover:underline">{{ ticket.ticketNumber }}</a>
+                                <span class="text-xs text-[#7a9fb5] ml-2">
+                                    {% if ticket.status == 'closed' %}Закрыт{% elseif ticket.status == 'expired' %}Просрочен{% elseif ticket.status == 'repledged' %}Перезалог{% else %}{{ ticket.status }}{% endif %}
+                                </span>
+                            </div>
+                            <div class="text-sm text-[#333]">{{ ticket.loanAmount }} ₽</div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-[#7a9fb5] text-center py-6 text-sm">История пуста</p>
             {% endif %}
         </div>
     </div>

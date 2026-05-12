@@ -3,12 +3,10 @@
 namespace App\Service;
 
 use App\Entity\Category;
-use App\Entity\City;
 use App\Entity\Currency;
-use App\Entity\Good;
-use App\Entity\GoodImage;
+use App\Entity\PledgedItem;
+use App\Entity\PledgedItemImage;
 use App\Entity\Metal;
-use App\Entity\Merchant;
 use App\Entity\MetalStandard;
 use App\Entity\PushApiLog;
 use Doctrine\ORM\EntityManagerInterface;
@@ -85,9 +83,6 @@ class SmartLombardHandler
 
         foreach ($payload as $batch) {
             $data = $batch['data'] ?? [];
-            foreach ($data['merchants'] ?? [] as $action) {
-                $responses[] = $this->processMerchant($action);
-            }
             foreach ($data['goods'] ?? [] as $action) {
                 $responses[] = $this->processGood($action);
             }
@@ -97,63 +92,6 @@ class SmartLombardHandler
         return $responses;
     }
 
-    private function processMerchant(array $action): array
-    {
-        $type        = $action['type'];
-        $data        = $action['data'];
-        $workplaceId = (int) $data['workplace'];
-
-        try {
-            $merchant = $this->entityManager->getRepository(Merchant::class)->find($workplaceId);
-
-            if ($type === 'remove') {
-                if ($merchant) $this->entityManager->remove($merchant);
-                $this->writeLog('merchant', 'remove', $workplaceId, $action, true, true);
-                return ['status' => true, 'type' => 'merchant-remove', 'unique' => $workplaceId];
-            }
-
-            if (!$merchant) {
-                $merchant = new Merchant();
-                (new \ReflectionProperty(Merchant::class, 'id'))->setValue($merchant, $workplaceId);
-            }
-
-            if (!empty($data['city'])) {
-                $city = $this->entityManager->getRepository(City::class)->findOneBy(['name' => $data['city']]);
-                if (!$city) {
-                    $city = new City();
-                    $city->setName($data['city']);
-                    $this->entityManager->persist($city);
-                }
-                $merchant->setCity($city);
-            }
-
-            $merchant->setName($data['name'] ?? $merchant->getName());
-            $merchant->setAddress($data['address'] ?? null);
-            $merchant->setPhone($data['phone'] ?? null);
-            $merchant->setShortlink($data['shortlink'] ?? null);
-            $merchant->setDescription($data['description'] ?? null);
-
-            if (!empty($data['image'])) {
-                $img = $data['image'];
-                if (isset($img['src'])) {
-                    $merchant->setImageSrc($this->downloadAndSaveImage($img['src'], 'merchant_full', $workplaceId, 'merchant'));
-                }
-                if (isset($img['preview'])) {
-                    $merchant->setImagePreview($this->downloadAndSaveImage($img['preview'], 'merchant_prev', $workplaceId, 'merchant'));
-                }
-            }
-
-            $this->entityManager->persist($merchant);
-            $this->writeLog('merchant', $type, $workplaceId, $action, true, true);
-
-            return ['status' => true, 'type' => 'merchant-' . $type, 'unique' => $workplaceId, 'message' => 'OK'];
-
-        } catch (\Exception $e) {
-            $this->writeLog('merchant', $type, $workplaceId, $action, true, false, $e->getMessage());
-            throw $e;
-        }
-    }
-
     private function processGood(array $action): array
     {
         $type      = $action['type'];
@@ -161,67 +99,61 @@ class SmartLombardHandler
         $data      = $action['data'] ?? [];
 
         try {
-            $good = $this->entityManager->getRepository(Good::class)->find($articleId);
+            $item = $this->entityManager->getRepository(PledgedItem::class)->find($articleId);
 
             if ($type === 'remove') {
-                if ($good) $this->entityManager->remove($good);
-                $this->writeLog('good', 'remove', $articleId, $action, true, true);
-                return ['status' => true, 'type' => 'good-remove', 'unique' => $articleId];
+                if ($item) $this->entityManager->remove($item);
+                $this->writeLog('pledged_item', 'remove', $articleId, $action, true, true);
+                return ['status' => true, 'type' => 'pledged_item-remove', 'unique' => $articleId];
             }
 
-            if (!$good) {
-                $good = new Good();
-                (new \ReflectionProperty(Good::class, 'id'))->setValue($good, $articleId);
+            if (!$item) {
+                $item = new PledgedItem();
+                (new \ReflectionProperty(PledgedItem::class, 'id'))->setValue($item, $articleId);
             }
 
-            if (!empty($data['workplace'])) {
-                $merchant = $this->entityManager->getRepository(Merchant::class)->find((int) $data['workplace']);
-                if ($merchant) $good->setMerchant($merchant);
-            }
-
-            $good->setName($data['name'] ?? $good->getName());
-            $good->setSoldPrice($data['price'] ?? '0');
-            $good->setSize($data['size'] ?? null);
-            $good->setDescription($data['features'] ?? null);
-            $good->setSpecification($data['specifications'] ?? null);
-            $good->setHiddenReason(isset($data['hidden_reason']) ? (int) $data['hidden_reason'] : null);
+            $item->setName($data['name'] ?? $item->getName());
+            $item->setSoldPrice($data['price'] ?? '0');
+            $item->setSize($data['size'] ?? null);
+            $item->setDescription($data['features'] ?? null);
+            $item->setSpecification($data['specifications'] ?? null);
 
             $status = match (true) {
-                (bool) ($data['sold']      ?? false) => Good::STATUS_SOLD,
-                (bool) ($data['withdrawn'] ?? false) => Good::STATUS_WITHDRAWN,
-                (bool) ($data['hidden']    ?? false) => Good::STATUS_HIDDEN,
-                default                              => Good::STATUS_ACTIVE,
+                (bool) ($data['sold']      ?? false) => PledgedItem::STATUS_SOLD,
+                (bool) ($data['withdrawn'] ?? false) => PledgedItem::STATUS_WITHDRAWN,
+                (bool) ($data['hidden']    ?? false) => PledgedItem::STATUS_HIDDEN,
+                default                              => PledgedItem::STATUS_FOR_SALE,
             };
-            $good->setStatus($status);
+            $item->setStatus($status);
 
-            // Category — flat, no parent anymore (parent_id was dropped in migration)
+            // Category
             if (!empty($data['category'])) {
-                $good->setCategory($this->findOrCreateCategory($data['category']));
+                $item->setCategory($this->findOrCreateCategory($data['category']));
             }
 
             // Currency
             if (!empty($data['currency'])) {
-                $good->setCurrency($this->findOrCreateCurrency($data['currency']));
+                $item->setCurrency($this->findOrCreateCurrency($data['currency']));
             }
 
             // Metal / standard
             if (!empty($data['metal_name']) && !empty($data['metal_standart_name'])) {
-                $good->setMetalStandard(
+                $item->setMetalStandard(
                     $this->findOrCreateMetalStandard($data['metal_name'], $data['metal_standart_name'])
                 );
             }
 
             // Images
             if (array_key_exists('images', $data)) {
-                foreach ($good->getImages() as $old) {
+                foreach ($item->getImages() as $old) {
                     $this->entityManager->remove($old);
                 }
                 foreach ($data['images'] as $imgData) {
-                    $src  = $this->downloadAndSaveImage($imgData['src']     ?? null, 'good_full', $articleId, 'good');
-                    $prev = $this->downloadAndSaveImage($imgData['preview'] ?? null, 'good_prev', $articleId, 'good');
+                    $src  = $this->downloadAndSaveImage($imgData['src']     ?? null, 'item_full', $articleId, 'pledged_item');
+                    $prev = $this->downloadAndSaveImage($imgData['preview'] ?? null, 'item_prev', $articleId, 'pledged_item');
                     if ($src) {
-                        $img = new GoodImage();
-                        $img->setGood($good);
+                        $img = new PledgedItemImage();
+                        $img->setPledgedItem($item);
                         $img->setSrc($src);
                         $img->setPreview($prev ?? $src);
                         $img->setIsCover((bool) ($imgData['cover'] ?? false));
@@ -230,13 +162,13 @@ class SmartLombardHandler
                 }
             }
 
-            $this->entityManager->persist($good);
-            $this->writeLog('good', $type, $articleId, $action, true, true);
+            $this->entityManager->persist($item);
+            $this->writeLog('pledged_item', $type, $articleId, $action, true, true);
 
-            return ['status' => true, 'type' => 'good-' . $type, 'unique' => $articleId, 'message' => 'Saved'];
+            return ['status' => true, 'type' => 'pledged_item-' . $type, 'unique' => $articleId, 'message' => 'Saved'];
 
         } catch (\Exception $e) {
-            $this->writeLog('good', $type, $articleId, $action, true, false, $e->getMessage());
+            $this->writeLog('pledged_item', $type, $articleId, $action, true, false, $e->getMessage());
             throw $e;
         }
     }

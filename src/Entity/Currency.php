@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'currencies')]
@@ -14,9 +15,14 @@ class Currency
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank(message: 'Укажите символ или код валюты.')]
+    #[Assert\Length(max: 50)]
+    #[Assert\Regex(pattern: '/^[\p{L}\p{M}0-9$€₽¥£.\s\-]{1,50}$/u', message: 'Допустимы буквы, цифры и распространённые знаки валют.')]
     private ?string $currency = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Укажите полное название валюты.')]
+    #[Assert\Length(max: 255)]
     private ?string $name = null;
 
     public function getId(): ?int

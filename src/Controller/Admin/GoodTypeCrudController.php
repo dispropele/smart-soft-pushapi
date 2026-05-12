@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin;
 
+use App\Admin\AdminFormAttributes;
 use App\Entity\GoodType;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -24,7 +25,7 @@ class GoodTypeCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Вид изделия')
             ->setEntityLabelInPlural('Виды изделий')
-            ->setDefaultSort(['category' => 'ASC', 'name' => 'ASC'])
+            ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
     }
@@ -32,28 +33,47 @@ class GoodTypeCrudController extends AbstractProtectedCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('name', 'Название');
+        yield TextField::new('name', 'Название')
+            ->setFormTypeOptions(['attr' => ['maxlength' => 255]]);
         yield AssociationField::new('category', 'Категория')->autocomplete();
+        yield TextField::new('code', 'Код (латиница)')
+            ->hideOnIndex()
+            ->setRequired(false)
+            ->setHelp('Если пусто — сгенерируется из названия.')
+            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::slugCode()));
+        yield TextField::new('coating', 'Покрытие (родий, позолота и т.д.)')
+            ->setHelp('Например: родий, позолота, серебрение')
+            ->setRequired(false)
+            ->setFormTypeOptions(['attr' => ['maxlength' => 100]]);
         yield BooleanField::new('hasStones', 'Со вставками (камнями)')
             ->setHelp('Включите, если этот вид изделий обычно имеет камни');
-        yield TextField::new('code', 'Код')
-            ->onlyOnDetail()
-            ->formatValue(fn($v) => $v ?? '—');
     }
 
     /** Auto-generate code from name on create/update */
     public function persistEntity(EntityManagerInterface $em, $entityInstance): void
     {
-        if ($entityInstance instanceof GoodType && !$entityInstance->getCode()) {
-            $entityInstance->setCode($this->generateCode($entityInstance->getName()));
+        if ($entityInstance instanceof GoodType) {
+            $raw = $entityInstance->getCode();
+            $trimmed = $raw !== null ? trim($raw) : '';
+            if ($trimmed !== '') {
+                $entityInstance->setCode(mb_strtolower($trimmed));
+            } else {
+                $entityInstance->setCode($this->generateCode($entityInstance->getName()));
+            }
         }
         parent::persistEntity($em, $entityInstance);
     }
 
     public function updateEntity(EntityManagerInterface $em, $entityInstance): void
     {
-        if ($entityInstance instanceof GoodType && !$entityInstance->getCode()) {
-            $entityInstance->setCode($this->generateCode($entityInstance->getName()));
+        if ($entityInstance instanceof GoodType) {
+            $raw = $entityInstance->getCode();
+            $trimmed = $raw !== null ? trim($raw) : '';
+            if ($trimmed !== '') {
+                $entityInstance->setCode(mb_strtolower($trimmed));
+            } else {
+                $entityInstance->setCode($this->generateCode($entityInstance->getName()));
+            }
         }
         parent::updateEntity($em, $entityInstance);
     }
@@ -77,22 +97,14 @@ class GoodTypeCrudController extends AbstractProtectedCrudController
     {
         if (!$entity instanceof GoodType) return null;
 
-        $loanedCount = $this->em->createQuery(
-            'SELECT COUNT(li) FROM App\\Entity\\LoanedItem li WHERE li.goodType = :t'
+        $pledgedCount = (int) $this->em->createQuery(
+            'SELECT COUNT(p) FROM App\Entity\PledgedItem p WHERE p.goodType = :t'
         )->setParameter('t', $entity)->getSingleScalarResult();
 
-        $goodCount = $this->em->createQuery(
-            'SELECT COUNT(g) FROM App\\Entity\\Good g WHERE g.goodType = :t'
-        )->setParameter('t', $entity)->getSingleScalarResult();
-
-        if ($loanedCount + $goodCount > 0) {
-            $parts = [];
-            if ($loanedCount > 0) $parts[] = "{$loanedCount} предметов залога";
-            if ($goodCount   > 0) $parts[] = "{$goodCount} товаров";
-
+        if ($pledgedCount > 0) {
             return sprintf(
-                'Невозможно удалить вид изделия «%s»: он используется в %s.',
-                $entity->getName(), implode(', ', $parts)
+                'Невозможно удалить вид изделия «%s»: он используется в %d предметах залога.',
+                $entity->getName(), $pledgedCount
             );
         }
 

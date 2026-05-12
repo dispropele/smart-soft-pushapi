@@ -15,28 +15,29 @@ class ClientCabinetController extends AbstractController
     #[Route('', name: 'app_client_cabinet')]
     public function index(
         SessionInterface $session,
-        ClientRepository $clientRepository,
-        LoanTicketRepository $loanTicketRepository
-    ): Response
-    {
+        ClientRepository $clientRepo,
+        LoanTicketRepository $ticketRepo
+    ): Response {
         $clientId = $session->get('client_id');
-
-        if (!$clientId) {
+        if ($clientId === null || $clientId === '') {
             return $this->redirectToRoute('app_client_login');
         }
 
-        $client = $clientRepository->find($clientId);
-
+        $client = $clientRepo->find((int) $clientId);
         if (!$client) {
             $session->invalidate();
             return $this->redirectToRoute('app_client_login');
         }
 
-        $openTickets = $loanTicketRepository->findOpenByClient($client);
+        // Активные: open + grace
+        $activeTickets = $ticketRepo->findActiveByClient($client);
+        // Историческими — closed, expired, repledged
+        $historyTickets = $ticketRepo->findHistoryByClient($client);
 
         return $this->render('client/cabinet.html.twig', [
-            'client' => $client,
-            'openTickets' => $openTickets,
+            'client'         => $client,
+            'activeTickets'  => $activeTickets,
+            'historyTickets' => $historyTickets,
         ]);
     }
 
@@ -44,26 +45,23 @@ class ClientCabinetController extends AbstractController
     public function ticketDetail(
         string $ticketNumber,
         SessionInterface $session,
-        ClientRepository $clientRepository,
-        LoanTicketRepository $loanTicketRepository
-    ): Response
-    {
+        ClientRepository $clientRepo,
+        LoanTicketRepository $ticketRepo
+    ): Response {
         $clientId = $session->get('client_id');
-
-        if (!$clientId) {
+        if ($clientId === null || $clientId === '') {
             return $this->redirectToRoute('app_client_login');
         }
 
-        $client = $clientRepository->find($clientId);
-
+        $client = $clientRepo->find((int) $clientId);
         if (!$client) {
             $session->invalidate();
             return $this->redirectToRoute('app_client_login');
         }
 
-        $ticket = $loanTicketRepository->findByNumber($ticketNumber);
-
-        if (!$ticket || $ticket->getClient() !== $client) {
+        $ticket = $ticketRepo->findByNumber($ticketNumber);
+        $ticketClientId = $ticket?->getClient()?->getId();
+        if (!$ticket || $ticketClientId === null || $ticketClientId !== $client->getId()) {
             throw $this->createNotFoundException('Залоговый билет не найден');
         }
 

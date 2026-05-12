@@ -47,9 +47,10 @@ class PushApiLogCrudController extends AbstractCrudController
 
         yield TextField::new('entityType', 'Объект')
             ->formatValue(fn ($v) => match ($v) {
-                'merchant' => '🏢 Филиал',
-                'good'     => '📦 Товар',
-                default    => $v ?? '—',
+                'merchant'       => '🏢 Филиал (архив)',
+                'pledged_item'   => '📦 Предмет залога',
+                'good'           => '📦 Товар (архив)',
+                default          => $v ?? '—',
             });
 
         yield TextField::new('eventType', 'Событие')
@@ -95,8 +96,9 @@ class PushApiLogCrudController extends AbstractCrudController
     {
         return $filters
             ->add(ChoiceFilter::new('entityType', 'Объект')->setChoices([
-                'Филиал' => 'merchant',
-                'Товар'  => 'good',
+                'Филиал (архив)'   => 'merchant',
+                'Предмет залога'   => 'pledged_item',
+                'Товар (архив)'    => 'good',
             ]))
             ->add(ChoiceFilter::new('eventType', 'Событие')->setChoices([
                 'Добавление'    => 'add',

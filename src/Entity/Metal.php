@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'metals')]
@@ -14,6 +15,8 @@ class Metal
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Укажите название металла.')]
+    #[Assert\Length(min: 1, max: 255)]
     private ?string $name = null;
 
     public function __toString(): string

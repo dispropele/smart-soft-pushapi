@@ -2,21 +2,18 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
-    trusted_proxies: '%env(default::TRUSTED_PROXIES)%'
-    trusted_headers:
-        - 'x-forwarded-for'
-        - 'x-forwarded-host'
-        - 'x-forwarded-proto'
-        - 'x-forwarded-port'
-    csrf_protection: false
+    trusted_proxies: '127.0.0.1,10.0.0.0/8'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port']
+    trusted_hosts: ['smart-soft-xdls\.onrender\.com', 'localhost']
+    csrf_protection: true
     # Note that the session will be started ONLY if you read or write from it.
 
     session:
         handler_id: null
         storage_factory_id: session.storage.factory.native
-        cookie_secure: auto
+        cookie_secure: true
         cookie_samesite: lax
-        save_path: '%kernel.project_dir%/var/sessions/%kernel.environment%'
+        save_path: '/tmp/sessions'
 
     #esi: true
     #fragments: true

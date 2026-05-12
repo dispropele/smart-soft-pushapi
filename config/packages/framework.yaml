@@ -11,9 +11,11 @@ framework:
     session:
         handler_id: null
         storage_factory_id: session.storage.factory.native
-        cookie_secure: true
+        # 'auto' sets the Secure flag based on the request (useful behind proxies)
+        cookie_secure: auto
         cookie_samesite: lax
-        save_path: '/tmp/sessions'
+        # match Docker runtime session save path
+        save_path: '/var/lib/php/sessions'
 
     #esi: true
     #fragments: true

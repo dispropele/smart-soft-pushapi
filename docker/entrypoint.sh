@@ -17,6 +17,18 @@ if [ -z "$DATABASE_URL" ]; then
   fi
 fi
 
+# Ensure DEFAULT_URI is set for commands that need absolute URLs (seeding, mailer, etc.)
+if [ -z "$DEFAULT_URI" ]; then
+  if [ -n "$RENDER_EXTERNAL_URL" ]; then
+    export DEFAULT_URI="$RENDER_EXTERNAL_URL"
+  elif [ -n "$APP_URL" ]; then
+    export DEFAULT_URI="$APP_URL"
+  else
+    export DEFAULT_URI="http://localhost"
+  fi
+fi
+echo "DEFAULT_URI: $DEFAULT_URI"
+
 echo "=== Container Startup ===" 
 echo "Database configuration:"
 echo "  HOST: $DATABASE_HOST"

@@ -36,8 +36,8 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Copy application code
 COPY . .
 
-# Build Tailwind CSS for production
-RUN APP_ENV=prod php bin/console tailwind:build --minify
+# Install importmap vendor assets (tailwindcss и др.)
+RUN DEFAULT_URI=http://localhost APP_ENV=prod php bin/console importmap:install
 
 # Build Tailwind CSS for production
 RUN DEFAULT_URI=http://localhost APP_ENV=prod php bin/console tailwind:build --minify

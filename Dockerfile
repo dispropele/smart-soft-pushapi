@@ -39,6 +39,9 @@ COPY . .
 # Build Tailwind CSS for production
 RUN APP_ENV=prod php bin/console tailwind:build --minify
 
+# Build Tailwind CSS for production
+RUN DEFAULT_URI=http://localhost APP_ENV=prod php bin/console tailwind:build --minify
+
 # Generate cache for production
 RUN mkdir -p var/cache var/log && chmod -R 777 var
 

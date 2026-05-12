@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Аурум Ломбард{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    {{ importmap() }}
 </head>
 <body class="bg-[#f8fbfd] text-[#333] flex flex-col min-h-screen font-sans">
 
@@ -54,6 +55,11 @@
             <p>© {{ "now"|date("Y") }} АУРУМ Ломбард. Все права защищены.</p>
         </div>
     </footer>
+    </footer>
 
+    {# Load app entrypoint (Stimulus, CSRF controller, styles) #}
+    <script type="module">
+        import 'app';
+    </script>
 </body>
 </html>

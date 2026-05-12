@@ -2,7 +2,7 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
-    trusted_proxies: '127.0.0.1,10.0.0.0/8'
+    trusted_proxies: '0.0.0.0/0'
     trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port']
     trusted_hosts: ['smart-soft-xdls\.onrender\.com', 'localhost']
     csrf_protection: true

@@ -32,7 +32,15 @@ abstract class AbstractProtectedCrudController extends AbstractCrudController
 
     public function delete(AdminContext $context): \EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore|Response
     {
+        if ($context->getCrud() === null) {
+            return parent::delete($context);
+        }
+
         $entity = $context->getEntity()->getInstance();
+        if ($entity === null) {
+            return parent::delete($context);
+        }
+
         $blockMessage = $this->getDeletionBlockMessage($entity);
 
         if ($blockMessage !== null) {

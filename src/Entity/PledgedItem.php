@@ -29,11 +29,6 @@ class PledgedItem
     #[ORM\JoinColumn(name: 'loan_ticket_id', nullable: true, onDelete: 'SET NULL')]
     private ?LoanTicket $loanTicket = null;
 
-    // Публикация на витрине (merchant_id зарезервирован под интеграции)
-    #[ORM\ManyToOne(targetEntity: Merchant::class)]
-    #[ORM\JoinColumn(name: 'merchant_id', nullable: true)]
-    private ?Merchant $merchant = null;
-
     #[ORM\ManyToOne(targetEntity: Category::class)]
     #[ORM\JoinColumn(nullable: true)]
     private ?Category $category = null;
@@ -151,8 +146,6 @@ class PledgedItem
     public function getId(): ?int { return $this->id; }
     public function getLoanTicket(): ?LoanTicket { return $this->loanTicket; }
     public function setLoanTicket(?LoanTicket $t): static { $this->loanTicket = $t; return $this; }
-    public function getMerchant(): ?Merchant { return $this->merchant; }
-    public function setMerchant(?Merchant $m): static { $this->merchant = $m; return $this; }
     public function getCategory(): ?Category { return $this->category; }
     public function setCategory(?Category $c): static { $this->category = $c; return $this; }
     public function getGoodType(): ?GoodType { return $this->goodType; }

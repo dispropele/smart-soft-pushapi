@@ -201,10 +201,13 @@ class LoanTicketCrudController extends AbstractCrudController
 
     // --- Custom actions ---
 
-    public function repledgeAction(AdminContext $context, RepledgeService $service): Response
+    public function repledgeAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
     {
+        $entityId = (int) $context->getRequest()->query->get('entityId');
         /** @var LoanTicket $ticket */
-        $ticket = $context->getEntity()->getInstance();
+        $ticket = $em->find(LoanTicket::class, $entityId);
+        if (!$ticket) { throw $this->createNotFoundException(); }
+
         $new = $service->createRepledge(
             $ticket,
             (string) ($ticket->getLoanAmount() ?? '0'),
@@ -221,10 +224,13 @@ class LoanTicketCrudController extends AbstractCrudController
         );
     }
 
-    public function redeemAction(AdminContext $context, RepledgeService $service): Response
+    public function redeemAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
     {
+        $entityId = (int) $context->getRequest()->query->get('entityId');
         /** @var LoanTicket $ticket */
-        $ticket = $context->getEntity()->getInstance();
+        $ticket = $em->find(LoanTicket::class, $entityId);
+        if (!$ticket) { throw $this->createNotFoundException(); }
+
         $service->redeem($ticket);
         $this->addFlash('success', 'Залог выкуплен. Предметы отмечены как «Выкуплен».');
 
@@ -237,12 +243,15 @@ class LoanTicketCrudController extends AbstractCrudController
         );
     }
 
-    public function moveToSaleAction(AdminContext $context, RepledgeService $service): Response
+    public function moveToSaleAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
     {
+        $entityId = (int) $context->getRequest()->query->get('entityId');
         /** @var LoanTicket $ticket */
-        $ticket = $context->getEntity()->getInstance();
+        $ticket = $em->find(LoanTicket::class, $entityId);
+        if (!$ticket) { throw $this->createNotFoundException(); }
+
         $service->moveToSale($ticket);
-        $this->addFlash('success', 'Предметы переданы на реализацию и опубликованы в каталоге.');
+        $this->addFlash('success', 'Предметы переданы на реализацию.');
 
         return $this->redirect(
             $this->container->get(AdminUrlGenerator::class)

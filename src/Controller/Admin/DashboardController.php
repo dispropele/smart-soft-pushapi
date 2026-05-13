@@ -3,7 +3,6 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Category;
-use App\Entity\City;
 use App\Entity\Client;
 use App\Entity\Currency;
 use App\Entity\GoodType;
@@ -64,8 +63,6 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Металлы', 'fa fa-cubes', Metal::class);
         yield MenuItem::linkToCrud('Пробы', 'fa fa-certificate', MetalStandard::class);
         yield MenuItem::linkToCrud('Валюты', 'fa fa-money', Currency::class);
-        yield MenuItem::linkToCrud('Города', 'fa fa-map-marker', City::class);
-
         yield MenuItem::section('Система');
         yield MenuItem::linkToCrud('Логи Push API', 'fa fa-list-alt', PushApiLog::class);
 

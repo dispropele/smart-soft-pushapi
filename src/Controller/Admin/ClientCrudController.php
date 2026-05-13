@@ -39,7 +39,7 @@ class ClientCrudController extends AbstractProtectedCrudController
         yield TextField::new('address', 'Адрес')
             ->setFormTypeOptions(['attr' => ['maxlength' => 2000], 'required' => false]);
         yield TextField::new('phone', 'Телефон')
-            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::phoneDigits()));
+            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::phoneMask()));
         yield TextField::new('email', 'Email')
             ->setFormTypeOptions(['attr' => ['maxlength' => 100], 'required' => false]);
         yield DateTimeField::new('createdAt', 'Дата создания')

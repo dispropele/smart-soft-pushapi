@@ -3,6 +3,13 @@
 namespace App\Controller\Admin;
 
 use App\Entity\PledgedItem;
+use App\Entity\PledgedItemImage;
+
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpKernel\KernelInterface;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
@@ -11,6 +18,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
@@ -33,6 +41,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
  */
 class PledgedItemCrudController extends AbstractCrudController
 {
+    private RequestStack $requestStack;
+    private KernelInterface $kernel;
+
+    public function __construct(RequestStack $requestStack, KernelInterface $kernel)
+    {
+        $this->requestStack = $requestStack;
+        $this->kernel = $kernel;
+    }
+
     public static function getEntityFqcn(): string { return PledgedItem::class; }
 
     public function configureCrud(Crud $crud): Crud
@@ -55,6 +72,16 @@ class PledgedItemCrudController extends AbstractCrudController
             ->onlyOnIndex();
 
         yield TextField::new('name', 'Название');
+
+        yield Field::new('imageFiles', 'Загрузить фото')
+            ->setFormType(FileType::class)
+            ->setFormTypeOptions([
+                'multiple' => true,
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['accept' => 'image/*'],
+            ])
+            ->onlyOnForms();
 
         // --- Статус ---
         yield TextField::new('status', 'Статус')
@@ -111,6 +138,7 @@ class PledgedItemCrudController extends AbstractCrudController
             ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]]);
 
         // --- Стоимости ---
+
         yield MoneyField::new('estimatedValue', 'Оценочная стоимость')
             ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnForms();
 
@@ -129,7 +157,7 @@ class PledgedItemCrudController extends AbstractCrudController
         yield TextField::new('condition', 'Состояние')->onlyOnForms();
 
         yield TextareaField::new('description', 'Описание')->setNumOfRows(3)->onlyOnForms();
-        yield TextareaField::new('specification', 'Спецификация')->setNumOfRows(3)->onlyOnForms();
+        yield TextareaField::new('specification', 'Спецификация')->setNumOfRows(3)->onlyOnDetail();
 
         // --- Даты ---
         yield DateTimeField::new('statusDate', 'Дата статуса')
@@ -192,6 +220,7 @@ class PledgedItemCrudController extends AbstractCrudController
             if ($entity->isForSale() && !$entity->getPublishedAt()) {
                 $entity->setPublishedAt(new \DateTime());
             }
+            $this->handleImageUpload($entity, $em);
         }
         parent::persistEntity($em, $entity);
     }
@@ -203,8 +232,56 @@ class PledgedItemCrudController extends AbstractCrudController
             if ($entity->isForSale() && !$entity->getPublishedAt()) {
                 $entity->setPublishedAt(new \DateTime());
             }
+            $this->handleImageUpload($entity, $em);
         }
         parent::updateEntity($em, $entity);
+    }
+
+    private function handleImageUpload(PledgedItem $entity, EntityManagerInterface $em): void
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (!$request) {
+            return;
+        }
+
+        $files = $request->files->get('PledgedItem');
+        if (!is_array($files) || empty($files['imageFiles'])) {
+            return;
+        }
+
+        $uploaded = $files['imageFiles'];
+        if (!$uploaded) {
+            return;
+        }
+
+        $fs = new Filesystem();
+        $uploadDir = $this->kernel->getProjectDir() . '/public/uploads/sl_images';
+        if (!$fs->exists($uploadDir)) {
+            $fs->mkdir($uploadDir, 0755);
+        }
+
+        foreach ($uploaded as $idx => $file) {
+            if (!($file instanceof UploadedFile)) {
+                continue;
+            }
+
+            $ext = $file->guessExtension() ?: 'jpg';
+            try {
+                $base = sprintf('pledge_%s_%s.%s', time(), bin2hex(random_bytes(4)), $ext);
+            } catch (\Exception $e) {
+                $base = sprintf('pledge_%s_%s.%s', time(), uniqid(), $ext);
+            }
+
+            $file->move($uploadDir, $base);
+            $relPath = '/uploads/sl_images/' . $base;
+
+            $image = new PledgedItemImage();
+            $image->setPledgedItem($entity);
+            $image->setSrc($relPath);
+            $image->setPreview($relPath);
+            $image->setIsCover($idx === 0);
+            $em->persist($image);
+        }
     }
 
     public function configureFilters(Filters $filters): Filters

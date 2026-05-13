@@ -32,13 +32,9 @@ class MetalColorCrudController extends AbstractProtectedCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('code', 'Код')->onlyOnIndex();
         yield AssociationField::new('metal', 'Металл')->autocomplete()->setRequired(false);
         yield TextField::new('name', 'Название')
             ->setFormTypeOptions(['attr' => ['maxlength' => 100]]);
-        yield TextField::new('code', 'Код (латиница)')
-            ->setRequired(false)
-            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::slugCode()));
     }
 
     protected function getDeletionBlockMessage(mixed $entity): ?string

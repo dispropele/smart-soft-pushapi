@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
@@ -41,10 +42,16 @@ class GoodTypeCrudController extends AbstractProtectedCrudController
             ->setRequired(false)
             ->setHelp('Если пусто — сгенерируется из названия.')
             ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::slugCode()));
-        yield TextField::new('coating', 'Покрытие (родий, позолота и т.д.)')
-            ->setHelp('Например: родий, позолота, серебрение')
+        yield ChoiceField::new('coating', 'Покрытие')
             ->setRequired(false)
-            ->setFormTypeOptions(['attr' => ['maxlength' => 100]]);
+            ->setChoices([
+                'Нет' => null,
+                'Родий' => 'rhodium',
+                'Позолота' => 'gold_plating',
+                'Серебрение' => 'silver_plating',
+                'Палладий' => 'palladium',
+                'Никелирование' => 'nickel_plating',
+            ]);
         yield BooleanField::new('hasStones', 'Со вставками (камнями)')
             ->setHelp('Включите, если этот вид изделий обычно имеет камни');
     }

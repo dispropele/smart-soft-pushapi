@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Entity\{Category, City, Currency, GoodType, Insert, InsertType, Merchant, MetalColor, MetalStandard, Metal, PledgedItem};
+use App\Entity\{Category, Currency, GoodType, Insert, InsertType, MetalColor, MetalStandard, Metal, PledgedItem};
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -42,12 +42,12 @@ class SeedAllCommand extends Command
                 'push_api_logs',
                 'good_types', 'inserts', 'insert_types',
                 'metal_colors', 'metal_standards', 'metals',
-                'currencies', 'categories', 'merchants', 'cities',
+                'currencies', 'categories',
             ] as $table) {
                 $conn->executeStatement("TRUNCATE TABLE $table CASCADE");
             }
             foreach ([
-                'categories_id_seq','cities_id_seq','currencies_id_seq',
+                'categories_id_seq','currencies_id_seq',
                 'clients_id_seq','pledged_item_images_id_seq',
                 'good_types_id_seq','insert_types_id_seq','inserts_id_seq',
                 'metal_colors_id_seq','metal_standards_id_seq','metals_id_seq',
@@ -57,11 +57,6 @@ class SeedAllCommand extends Command
             }
             $io->success('Таблицы очищены');
         }
-
-        $io->section('Города…');
-        $moscow = $this->city('Москва');
-        $this->em->flush();
-        $io->writeln('✓ Москва');
 
         $io->section('Валюта…');
         $rub = new Currency();
@@ -347,23 +342,5 @@ class SeedAllCommand extends Command
         $io->success('База успешно заполнена.');
 
         return Command::SUCCESS;
-    }
-
-    private function city(string $name): City
-    {
-        $city = new City();
-        $city->setName($name);
-        $this->em->persist($city);
-        return $city;
-    }
-
-    private function merchant(int $id, string $name, City $city, string $address, string $phone, string $desc): Merchant
-    {
-        $m = new Merchant();
-        (new \ReflectionProperty(Merchant::class, 'id'))->setValue($m, $id);
-        $m->setName($name)->setCity($city)->setAddress($address)
-          ->setPhone(preg_replace('/\D/', '', $phone))->setDescription($desc);
-        $this->em->persist($m);
-        return $m;
     }
 }

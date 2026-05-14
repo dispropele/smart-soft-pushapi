@@ -24,10 +24,8 @@ class MetalColor
     private ?string $name = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-    #[Assert\Optional([
-        new Assert\Length(max: 50),
-        new Assert\Regex(pattern: '/^[a-z0-9_]+$/', message: 'Код: латиница, цифры и подчёркивание.'),
-    ])]
+    #[Assert\Length(max: 50)]
+    #[Assert\Regex(pattern: '/^[a-z0-9_]+$/', message: 'Код: латиница, цифры и подчёркивание.')]
     private ?string $code = null;
 
     public function __toString(): string

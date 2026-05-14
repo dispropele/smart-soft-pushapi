@@ -1,17 +1,31 @@
 {# Шаблон для отображения обложки (первого фото) залогового предмета в админке #}
-{% if field.value and field.value.images|length > 0 %}
+{# Поддерживает несколько форм представления: field.value может быть коллекцией изображений
+   либо объектом сущности с полем `images`. #}
+{% set images_collection = null %}
+
+{% if field.value is iterable %}
+    {% set images_collection = field.value %}
+{% elseif field.value is defined and attribute(field.value, 'images') is defined %}
+    {% set images_collection = attribute(field.value, 'images') %}
+{% elseif entity is defined and attribute(entity, 'instance') is defined and attribute(entity.instance, 'images') is defined %}
+    {% set images_collection = attribute(entity.instance, 'images') %}
+{% endif %}
+
+{% if images_collection and images_collection|length > 0 %}
     {% set cover = null %}
-    {% for img in field.value.images %}
+    {% for img in images_collection %}
         {% if img.isCover and cover is null %}
             {% set cover = img %}
         {% endif %}
     {% endfor %}
     {% if cover is null %}
-        {% set cover = field.value.images|first %}
+        {% set cover = images_collection|first %}
     {% endif %}
     
     {% if cover and cover.preview %}
-        <img src="{{ cover.preview }}" alt="{{ field.value.name }}" style="max-width: 100px; max-height: 100px; object-fit: cover;" />
+        <img src="{{ cover.preview }}" alt="{{ (field.value.name ?? entity.instance.name) | default('Фото') }}" style="max-width: 100px; max-height: 100px; object-fit: cover;" />
+    {% else %}
+        <span class="text-muted">Нет фото</span>
     {% endif %}
 {% else %}
     <span class="text-muted">Нет фото</span>

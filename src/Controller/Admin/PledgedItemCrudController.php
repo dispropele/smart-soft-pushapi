@@ -67,9 +67,9 @@ class PledgedItemCrudController extends AbstractCrudController
         yield IdField::new('id', 'ID')->setMaxLength(10)->hideOnForm();
 
         yield Field::new('images', 'Фото')
-            ->setTemplatePath('admin/field/pledged_item_cover.html.twig')
-            ->setSortable(false)
-            ->onlyOnIndex();
+                ->setTemplatePath('admin/field/pledged_item_cover.html.twig')
+                ->setSortable(false)
+                ->onlyOnIndex();
 
         yield TextField::new('name', 'Название');
 
@@ -187,7 +187,7 @@ class PledgedItemCrudController extends AbstractCrudController
             ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
         yield MoneyField::new('soldPrice', 'Цена продажи')
             ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
-        yield AssociationField::new('currency', 'Валюта')->onlyOnDetail();
+        // currency removed from admin views per request
         yield TextField::new('condition', 'Состояние')->onlyOnDetail();
         yield TextareaField::new('description', 'Описание')->onlyOnDetail();
         yield TextareaField::new('specification', 'Спецификация')->onlyOnDetail();

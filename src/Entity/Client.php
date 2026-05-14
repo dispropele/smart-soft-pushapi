@@ -40,10 +40,8 @@ class Client
     private ?string $phone = null;
 
     #[ORM\Column(length: 100, nullable: true)]
-    #[Assert\Optional([
-        new Assert\Email(message: 'Некорректный e-mail.'),
-        new Assert\Length(max: 100),
-    ])]
+    #[Assert\Email(message: 'Некорректный e-mail.')]
+    #[Assert\Length(max: 100)]
     private ?string $email = null;
 
     #[ORM\Column(type: 'datetime_immutable')]

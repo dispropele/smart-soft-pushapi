@@ -27,13 +27,22 @@
             <div>
                 <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Паспорт</p>
                 <p class="text-base text-[#333] font-semibold mt-1">
-                    {% if client.passportSeries %}{{ client.passportSeries }} {% endif %}{{ client.passportNumber }}
+                    {% if client.passportSeries %}Серия: {{ client.passportSeries|slice(0, 2) }}** {% endif %}Номер: ***{{ client.passportNumber|slice(-3) }}
                 </p>
             </div>
             {% if client.phone %}
                 <div>
                     <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Телефон</p>
-                    <p class="text-base text-[#333] font-semibold mt-1">{{ client.phone }}</p>
+                    <p class="text-base text-[#333] font-semibold mt-1">
+                        {% set phone = client.phone|replace({' ': '', '-': '', '(': '', ')': ''}) %}
+                        {% if phone starts with '+7' and phone|length == 12 %}
+                            +7 ({{ phone|slice(2, 3) }}) {{ phone|slice(5, 3) }}-{{ phone|slice(8, 2) }}-{{ phone|slice(10, 2) }}
+                        {% elseif phone starts with '8' and phone|length == 11 %}
+                            +7 ({{ phone|slice(1, 3) }}) {{ phone|slice(4, 3) }}-{{ phone|slice(7, 2) }}-{{ phone|slice(9, 2) }}
+                        {% else %}
+                            {{ client.phone }}
+                        {% endif %}
+                    </p>
                 </div>
             {% endif %}
             {% if client.email %}
@@ -72,36 +81,55 @@
                                         </a>
                                     </p>
                                 </div>
-                                <span class="inline-block bg-[#e1f0f5] text-[#1d4e75] text-xs font-bold px-3 py-1 rounded-[2px] border border-[#c8d7e1]">
+                                <span class="inline-block px-3 py-1 text-xs font-bold rounded-[2px] border 
+                                    {% if ticket.status == 'grace' %}
+                                        bg-[#fff3cd] text-[#856404] border-[#ffeeba]
+                                    {% else %}
+                                        bg-[#d4edda] text-[#155724] border-[#c3e6cb]
+                                    {% endif %}">
                                     {% if ticket.status == 'grace' %}Льготный период{% else %}Активен{% endif %}
                                 </span>
                             </div>
 
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 pb-4 border-b border-[#c8d7e1]">
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 <div>
                                     <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Сумма займа</p>
-                                    <p class="text-lg font-bold text-[#333] mt-1">{{ ticket.loanAmount }} ₽</p>
+                                    <p class="text-lg font-bold text-[#333] mt-1">{{ ticket.loanAmount|number_format(0, '.', ' ') }} ₽</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Процент</p>
-                                    <p class="text-base text-[#333] font-semibold mt-1">{{ ticket.interestRate ?? '—' }}{% if ticket.interestRate %} %{% endif %}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Выдан</p>
-                                    <p class="text-base text-[#333] mt-1">{{ ticket.issuedAt|date('d.m.Y') }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">До</p>
-                                    <p class="text-base font-semibold mt-1">
-                                        {% set daysLeft = ((ticket.returnDate|date('U') - 'now'|date('U')) / 86400)|round(0, 'ceil') %}
-                                        {% if daysLeft > 7 %}
-                                            <span class="text-[#333]">{{ ticket.returnDate|date('d.m.Y') }}</span>
-                                        {% elseif daysLeft > 0 %}
-                                            <span class="text-orange-600">{{ daysLeft }} дн.</span>
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Ставка</p>
+                                    <p class="text-base text-[#333] font-semibold mt-1">
+                                        {% if ticket.tariff %}
+                                            {{ ticket.tariff.dailyRate|number_format(2, '.', '') }}% в день
                                         {% else %}
-                                            <span class="text-[#721c24]">Истёк</span>
+                                            {{ ticket.dailyInterestRate ?? '—' }}{% if ticket.dailyInterestRate %}% в день{% endif %}
                                         {% endif %}
                                     </p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Сроки</p>
+                                    <p class="text-base font-semibold mt-1 text-[#333]">
+                                        Срок займа: до {{ ticket.returnDate|date('d.m.Y') }}. 
+                                        Льготный период: до {{ ticket.returnDate|date_modify('+' ~ ticket.graceDays ~ ' days')|date('d.m.Y') }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {% set today = 'now'|date('Y-m-d') %}
+                            {% set issued = ticket.issuedAt|date('Y-m-d') %}
+                            {% set daysPassed = ((date(today).timestamp - date(issued).timestamp) / 86400)|round(0, 'ceil') %}
+                            {% set daysPassed = max(1, daysPassed) %}
+                            {% set dailyRate = ticket.tariff ? ticket.tariff.dailyRate : (ticket.dailyInterestRate ?? 0) %}
+                            {% set currentInterest = (ticket.loanAmount * (dailyRate / 100) * daysPassed)|round(2) %}
+                            {% set totalToPay = ticket.loanAmount + currentInterest %}
+                            
+                            <div class="bg-[#e1f0f5] border border-[#c8d7e1] rounded-[3px] p-4 mb-4">
+                                <p class="text-xs font-bold text-[#1d4e75] uppercase tracking-wide mb-2">К оплате на сегодня:</p>
+                                <div class="flex items-baseline gap-4 flex-wrap">
+                                    <div class="text-2xl font-black text-[#1d4e75]">{{ totalToPay|number_format(2, '.', ' ') }} ₽</div>
+                                    <div class="text-sm text-[#7a9fb5] font-medium">
+                                        (Основной долг: {{ ticket.loanAmount|number_format(2, '.', ' ') }} ₽ + Начисленные проценты: {{ currentInterest|number_format(2, '.', ' ') }} ₽)
+                                    </div>
                                 </div>
                             </div>
 
@@ -110,9 +138,17 @@
                                     <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide mb-2">Заложено:</p>
                                     <div class="flex flex-wrap gap-2">
                                         {% for item in ticket.pledgedItems %}
-                                            <div class="bg-white border border-[#c8d7e1] rounded-[2px] px-3 py-2 text-sm shadow-sm">
-                                                <p class="font-medium text-[#333]">{{ item.name }}</p>
-                                                <p class="text-[#7a9fb5] text-xs font-bold mt-0.5">{% if item.estimatedValue %}{{ item.estimatedValue }} ₽{% else %}—{% endif %}</p>
+                                            <div class="bg-white border border-[#c8d7e1] rounded-[2px] px-3 py-2 text-sm shadow-sm flex items-center gap-3">
+                                                {% set cover = null %}
+                                                {% for img in item.images %}{% if img.isCover and cover is null %}{% set cover = img %}{% endif %}{% endfor %}
+                                                {% if cover is null and item.images|length > 0 %}{% set cover = item.images|first %}{% endif %}
+                                                {% if cover %}
+                                                    <img src="{{ cover.preview }}" alt="{{ item.name }}" class="w-8 h-8 object-cover rounded-[1px] border border-[#e1f0f5]">
+                                                {% endif %}
+                                                <div>
+                                                    <p class="font-medium text-[#333]">{{ item.name }}</p>
+                                                    <p class="text-[#7a9fb5] text-xs font-bold mt-0.5">Оценочная стоимость: {% if item.estimatedValue %}{{ item.estimatedValue|number_format(0, '.', ' ') }} ₽{% else %}—{% endif %}</p>
+                                                </div>
                                             </div>
                                         {% endfor %}
                                     </div>
@@ -148,11 +184,21 @@
                         <li class="py-4 flex flex-wrap items-center justify-between gap-2">
                             <div>
                                 <a href="{{ path('app_client_ticket_detail', {ticketNumber: ticket.ticketNumber}) }}" class="font-mono font-bold text-[#2d6ca2] hover:underline">{{ ticket.ticketNumber }}</a>
-                                <span class="text-xs text-[#7a9fb5] ml-2">
-                                    {% if ticket.status == 'closed' %}Закрыт{% elseif ticket.status == 'expired' %}Просрочен{% elseif ticket.status == 'repledged' %}Перезалог{% else %}{{ ticket.status }}{% endif %}
+                                <span class="text-xs font-bold ml-2 px-2 py-0.5 rounded-[2px] 
+                                    {% if ticket.status == 'closed' %}bg-[#d4edda] text-[#155724]
+                                    {% elseif ticket.status == 'expired' %}bg-[#f8d7da] text-[#721c24]
+                                    {% elseif ticket.status == 'repledged' %}bg-[#cce5ff] text-[#004085]
+                                    {% else %}bg-[#e2e3e5] text-[#383d41]{% endif %}">
+                                    {% if ticket.status == 'closed' %}Закрыт
+                                    {% elseif ticket.status == 'expired' %}Просрочен
+                                    {% elseif ticket.status == 'repledged' %}Перезалог
+                                    {% else %}{{ ticket.status }}{% endif %}
                                 </span>
+                                {% if ticket.closedAt %}
+                                    <span class="text-xs text-[#7a9fb5] ml-2">от {{ ticket.closedAt|date('d.m.Y') }}</span>
+                                {% endif %}
                             </div>
-                            <div class="text-sm text-[#333]">{{ ticket.loanAmount }} ₽</div>
+                            <div class="text-sm font-semibold text-[#333]">Займ: {{ ticket.loanAmount|number_format(0, '.', ' ') }} ₽</div>
                         </li>
                     {% endfor %}
                 </ul>

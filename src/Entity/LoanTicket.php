@@ -215,6 +215,26 @@ class LoanTicket
         }
     }
 
+    #[Assert\Callback]
+    public function validateLoanAmount(ExecutionContextInterface $context): void
+    {
+        $loanAmount = (float) ($this->loanAmount ?? 0);
+        if ($loanAmount <= 0) {
+            return;
+        }
+
+        $totalEstimate = 0.0;
+        foreach ($this->pledgedItems as $item) {
+            $totalEstimate += (float) ($item->getEstimatedValue() ?? 0);
+        }
+
+        if ($totalEstimate > 0 && $loanAmount > $totalEstimate) {
+            $context->buildViolation(
+                sprintf('Сумма займа (%.2f ₽) не может превышать общую оценочную стоимость изделий (%.2f ₽).', $loanAmount, $totalEstimate)
+            )->atPath('loanAmount')->addViolation();
+        }
+    }
+
     /** @return list<string> */
     public static function statusChoices(): array
     {

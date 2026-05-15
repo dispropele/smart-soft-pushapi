@@ -143,6 +143,8 @@ public function getGoodType(): ?GoodType { return $this->goodType; }
 public function setGoodType(?GoodType $t): static { $this->goodType = $t; return $this; }
 public function getMetalStandard(): ?MetalStandard { return $this->metalStandard; }
 public function setMetalStandard(?MetalStandard $ms): static { $this->metalStandard = $ms; return $this; }
+public function getMetal(): ?Metal { return $this->metalStandard?->getMetal(); }
+public function setMetal(?Metal $metal): static { return $this; }
 public function getMetalColor(): ?MetalColor { return $this->metalColor; }
 public function setMetalColor(?MetalColor $mc): static { $this->metalColor = $mc; return $this; }
 public function getInsert(): ?Insert { return $this->insert; }

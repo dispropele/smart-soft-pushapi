@@ -123,13 +123,6 @@
                     </tr>
                     {% endif %}
 
-                    {% if item.scrapWeight %}
-                    <tr class="border-b border-[#f0f4f8]">
-                        <td class="px-5 py-3 text-[#7a9fb5]">Вес металла (лом)</td>
-                        <td class="px-5 py-3 text-[#333] font-medium">{{ item.scrapWeight }} г</td>
-                    </tr>
-                    {% endif %}
-
                     {% if item.condition %}
                     <tr class="border-b border-[#f0f4f8]">
                         <td class="px-5 py-3 text-[#7a9fb5]">Состояние</td>
@@ -141,13 +134,6 @@
                     <tr class="border-b border-[#f0f4f8]">
                         <td class="px-5 py-3 text-[#7a9fb5]">Оценочная стоимость</td>
                         <td class="px-5 py-3 text-[#333] font-medium">{{ item.estimatedValue|number_format(0, '.', ' ') }} ₽</td>
-                    </tr>
-                    {% endif %}
-
-                    {% if item.publishedAt %}
-                    <tr>
-                        <td class="px-5 py-3 text-[#7a9fb5]">На витрине с</td>
-                        <td class="px-5 py-3 text-[#333]">{{ item.publishedAt|date('d.m.Y') }}</td>
                     </tr>
                     {% endif %}
 

@@ -4,6 +4,8 @@ namespace App\Form;
 
 use App\Entity\LoanTicket;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -31,10 +33,21 @@ class RepledgeType extends AbstractType
                 'constraints' => [new Positive()],
                 'attr' => ['min' => 0.01, 'step' => '0.01', 'max' => $totalDebt],
                 'help' => sprintf(
-                    'Сначала гасятся проценты, остаток — на уменьшение тела. Максимум: %.2f ₽ (тело + проценты). При полной оплате билет закрывается как выкупленный.',
+                    'Максимум: %.2f ₽ (тело + проценты). При полной оплате билет закрывается.',
                     $totalDebt
                 ),
-            ])
+            ]);
+
+        // Add checkboxes for each pledged item
+        foreach ($ticket->getPledgedItems() as $item) {
+            $builder->add('redeem_' . $item->getId(), CheckboxType::class, [
+                'label' => false,
+                'required' => false,
+                'mapped' => false,
+            ]);
+        }
+
+        $builder
             ->add('extensionDays', IntegerType::class, [
                 'label' => 'Продление на (дней)',
                 'data' => 30,

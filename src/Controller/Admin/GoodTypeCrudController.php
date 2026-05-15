@@ -2,7 +2,6 @@
 
 namespace App\Controller\Admin;
 
-use App\Admin\AdminFormAttributes;
 use App\Entity\GoodType;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -37,11 +36,6 @@ class GoodTypeCrudController extends AbstractProtectedCrudController
         yield TextField::new('name', 'Название')
             ->setFormTypeOptions(['attr' => ['maxlength' => 255]]);
         yield AssociationField::new('category', 'Категория')->autocomplete();
-        yield TextField::new('code', 'Код (латиница)')
-            ->hideOnIndex()
-            ->setRequired(false)
-            ->setHelp('Если пусто — сгенерируется из названия.')
-            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::slugCode()));
         yield ChoiceField::new('coating', 'Покрытие')
             ->setRequired(false)
             ->setChoices([

@@ -91,4 +91,82 @@ class LoanTicketRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /** Сумма займов в определённом статусе */
+    public function getSumForStatus(string $status): float
+    {
+        $result = $this->createQueryBuilder('lt')
+            ->select('SUM(lt.loanAmount)')
+            ->where('lt.status = :status')
+            ->setParameter('status', $status)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) $result;
+    }
+
+    /** Сумма выданных займов за последние N дней, по датам (с возвращением массива по дням) */
+    public function getIssuedByDayLastWeek(): array
+    {
+        try {
+            $sevenDaysAgo = (new \DateTime())->modify('-7 days')->format('Y-m-d');
+            
+            $results = $this->createQueryBuilder('lt')
+                ->select("CAST(lt.issuedAt AS date) as date, SUM(lt.loanAmount) as amount")
+                ->where('lt.issuedAt >= :weekAgo')
+                ->setParameter('weekAgo', $sevenDaysAgo)
+                ->groupBy('date')
+                ->orderBy('date', 'ASC')
+                ->getQuery()
+                ->getResult();
+
+            return array_map(fn($r) => [
+                'date' => $this->formatDate($r['date']),
+                'amount' => (float)($r['amount'] ?? 0)
+            ], $results);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /** Сумма погашенных займов за последние N дней (закрытые билеты), по датам
+     *  ВАЖНО: включает основной долг + собранные проценты, которые фактически получены */
+    public function getClosedByDayLastWeek(): array
+    {
+        try {
+            $sevenDaysAgo = (new \DateTime())->modify('-7 days')->format('Y-m-d');
+            
+            $results = $this->createQueryBuilder('lt')
+                ->select("CAST(lt.closedAt AS date) as date, 
+                         SUM(lt.paidPrincipal + lt.paidInterest) as amount")
+                ->where('lt.closedAt IS NOT NULL')
+                ->andWhere('lt.closedAt >= :weekAgo')
+                ->setParameter('weekAgo', $sevenDaysAgo)
+                ->groupBy('date')
+                ->orderBy('date', 'ASC')
+                ->getQuery()
+                ->getResult();
+
+            return array_map(fn($r) => [
+                'date' => $this->formatDate($r['date']),
+                'amount' => (float)($r['amount'] ?? 0)
+            ], $results);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /** Форматирование даты для совместимости с разными драйверами */
+    private function formatDate($date): string
+    {
+        if ($date instanceof \DateTime) {
+            return $date->format('Y-m-d');
+        }
+        if ($date instanceof \DateTimeInterface) {
+            return $date->format('Y-m-d');
+        }
+        return (string)$date;
+    }
 }
+
+

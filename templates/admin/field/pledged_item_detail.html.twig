@@ -1,0 +1,250 @@
+{# templates/admin/field/pledged_item_detail.html.twig #}
+{% set item = entity.instance %}
+{% set isPledged = item.status == 'pledged' %}
+{% set isForSale = item.status == 'for_sale' %}
+{% set isSold = item.status == 'sold' %}
+{% set isRedeemed = item.status == 'redeemed' %}
+{% set statusColors = {
+    'pledged': 'bg-primary',
+    'redeemed': 'bg-success',
+    'for_sale': 'bg-warning text-dark',
+    'sold': 'bg-danger',
+    'withdrawn': 'bg-secondary',
+    'hidden': 'bg-dark',
+} %}
+
+<div class="pledged-item-detail">
+    {# ===== ШАПКА со статусом ===== #}
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <h3 class="mb-0">{{ item.name }}</h3>
+        <span class="badge {{ statusColors[item.status] ?? 'bg-light text-dark' }} fs-6">
+            {{ item.statusLabel }}
+        </span>
+        {% if item.loanTicket %}
+            <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanTicketCrudController').setAction('detail').setEntityId(item.loanTicket.id) }}"
+               class="badge bg-info text-dark text-decoration-none">
+                <i class="fa fa-file-text"></i> {{ item.loanTicket.ticketNumber }}
+            </a>
+        {% endif %}
+    </div>
+
+    {# ===== БЛОК 1: Фотографии ===== #}
+    <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="fa fa-camera"></i> Фотографии</div>
+        <div class="card-body">
+            {% if item.images|length > 0 %}
+                <div class="d-flex flex-wrap gap-2">
+                    {% for img in item.images %}
+                        <a href="{{ img.src }}" target="_blank" class="position-relative">
+                            <img src="{{ img.preview }}" alt="Фото"
+                                 class="rounded border"
+                                 style="width: 120px; height: 120px; object-fit: cover; cursor: zoom-in;">
+                            {% if img.isCover %}
+                                <span class="badge bg-success position-absolute top-0 start-0 m-1">Обложка</span>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-muted mb-2">Фотографии не загружены.</div>
+                <div class="alert alert-warning py-2">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    Без фото предмет не может быть выставлен на реализацию.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {# ===== БЛОК 2: Основные параметры (всегда видны) ===== #}
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-bold"><i class="fa fa-cube"></i> Основные параметры</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Название</dt>
+                        <dd class="col-sm-7">{{ item.name }}</dd>
+
+                        {% if item.goodType %}
+                            <dt class="col-sm-5">Вид изделия</dt>
+                            <dd class="col-sm-7">{{ item.goodType }}</dd>
+                        {% endif %}
+
+                        {% if item.category %}
+                            <dt class="col-sm-5">Категория</dt>
+                            <dd class="col-sm-7">{{ item.category.name }}</dd>
+                        {% endif %}
+
+                        {% if item.size %}
+                            <dt class="col-sm-5">Размер</dt>
+                            <dd class="col-sm-7">{{ item.size }}</dd>
+                        {% endif %}
+
+                        {% if item.description %}
+                            <dt class="col-sm-5">Описание</dt>
+                            <dd class="col-sm-7">{{ item.description|nl2br }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        {# ===== БЛОК 3: Металл и вес ===== #}
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-bold"><i class="fa fa-balance-scale"></i> Металл и вес</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        {% if item.metalStandard %}
+                            <dt class="col-sm-5">Металл / проба</dt>
+                            <dd class="col-sm-7">{{ item.metalStandard }}</dd>
+                        {% endif %}
+
+                        {% if item.metalColor %}
+                            <dt class="col-sm-5">Цвет металла</dt>
+                            <dd class="col-sm-7">{{ item.metalColor }}</dd>
+                        {% endif %}
+
+                        {% if item.itemWeight %}
+                            <dt class="col-sm-5">Вес изделия</dt>
+                            <dd class="col-sm-7">{{ item.itemWeight }} г</dd>
+                        {% endif %}
+
+                        {% if item.insertWeight %}
+                            <dt class="col-sm-5">Вес вставок</dt>
+                            <dd class="col-sm-7">{{ item.insertWeight }} г</dd>
+                        {% endif %}
+
+                        {% if item.scrapWeight %}
+                            <dt class="col-sm-5">Вес лома</dt>
+                            <dd class="col-sm-7">{{ item.scrapWeight }} г</dd>
+                        {% endif %}
+
+                        {# Умный расчет: чистый вес металла #}
+                        {% if item.itemWeight and item.insertWeight %}
+                            {% set netWeight = item.itemWeight - item.insertWeight %}
+                            <dt class="col-sm-5 text-success">Чистый вес металла</dt>
+                            <dd class="col-sm-7 text-success fw-bold">{{ netWeight|number_format(2, '.', ' ') }} г</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        {# ===== БЛОК 4: Вставки ===== #}
+        {% if item.insert or item.insertDescription %}
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header fw-bold"><i class="fa fa-diamond"></i> Вставки</div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            {% if item.insert %}
+                                <dt class="col-sm-5">Вставка</dt>
+                                <dd class="col-sm-7">{{ item.insert }}</dd>
+                            {% endif %}
+                            {% if item.insertDescription %}
+                                <dt class="col-sm-5">Описание вставки</dt>
+                                <dd class="col-sm-7">{{ item.insertDescription }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {# ===== БЛОК 5: Финансы ===== #}
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-bold"><i class="fa fa-money"></i> Финансы</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        {% if item.estimatedValue %}
+                            <dt class="col-sm-5">Оценочная стоимость</dt>
+                            <dd class="col-sm-7 fw-bold">{{ item.estimatedValue|number_format(2, '.', ' ') }} ₽</dd>
+                        {% endif %}
+
+                        {% if item.soldPrice %}
+                            <dt class="col-sm-5">Цена продажи</dt>
+                            <dd class="col-sm-7 fw-bold text-success">{{ item.soldPrice|number_format(2, '.', ' ') }} ₽</dd>
+                        {% endif %}
+
+                        {% if item.redemptionAmount %}
+                            <dt class="col-sm-5">Сумма выкупа</dt>
+                            <dd class="col-sm-7">{{ item.redemptionAmount|number_format(2, '.', ' ') }} ₽</dd>
+                        {% endif %}
+
+                        {% if item.redemptionDate %}
+                            <dt class="col-sm-5">Дата выкупа</dt>
+                            <dd class="col-sm-7">{{ item.redemptionDate|date('d.m.Y H:i') }}</dd>
+                        {% endif %}
+
+                        {% if item.condition %}
+                            <dt class="col-sm-5">Состояние</dt>
+                            <dd class="col-sm-7">{{ item.condition }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        {# ===== БЛОК 6: Срок хранения (умный расчет) ===== #}
+        {% if isPledged and item.statusDate %}
+            {% set daysInStorage = date().diff(date(item.statusDate)).days %}
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header fw-bold"><i class="fa fa-clock-o"></i> Срок хранения</div>
+                    <div class="card-body">
+                        <p class="mb-0">
+                            Находится в ломбарде уже <strong>{{ daysInStorage }} дней</strong>
+                            <span class="text-muted">(с {{ item.statusDate|date('d.m.Y') }})</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {# ===== БЛОК 7: Публикация (если на реализации или продан) ===== #}
+        {% if isForSale or isSold %}
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header fw-bold"><i class="fa fa-globe"></i> Публикация</div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            {% if item.publishedAt %}
+                                <dt class="col-sm-5">Дата публикации</dt>
+                                <dd class="col-sm-7">{{ item.publishedAt|date('d.m.Y H:i') }}</dd>
+                            {% endif %}
+                            {% if item.specification %}
+                                <dt class="col-sm-5">Спецификация</dt>
+                                <dd class="col-sm-7">{{ item.specification }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    {# ===== Предупреждения при смене статуса ===== #}
+    {% if isPledged or item.status == 'withdrawn' %}
+        <div class="alert alert-info mt-4">
+            <i class="fa fa-info-circle"></i>
+            <strong>Для перевода на реализацию необходимо:</strong>
+            <ul class="mb-0 mt-1">
+                <li>Установить цену продажи (не ниже оценочной стоимости)</li>
+                <li>Заполнить состояние изделия</li>
+                <li>Загрузить хотя бы одно фото</li>
+            </ul>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.pledged-item-detail dl.row dt {
+    color: #666;
+    font-weight: 500;
+}
+.pledged-item-detail dl.row dd {
+    margin-bottom: 0.5rem;
+}
+</style>

@@ -101,4 +101,72 @@ class PledgedItemRepository extends ServiceEntityRepository
             ->andWhere('p.status = :s')->setParameter('s', $status)
             ->getQuery()->getResult();
     }
+
+    /** Сумма оценки/продажи для статуса */
+    public function getSumForStatus(string $status): float
+    {
+        $field = ($status === PledgedItem::STATUS_FOR_SALE) ? 'p.soldPrice' : 'p.estimatedValue';
+
+        $result = $this->createQueryBuilder('p')
+            ->select("SUM($field)")
+            ->where('p.status = :status')
+            ->setParameter('status', $status)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) $result;
+    }
+
+    /** Последние продажи */
+    public function findLatestSales(int $limit): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.status = :status')
+            ->setParameter('status', PledgedItem::STATUS_SOLD)
+            ->orderBy('p.statusDate', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** Сумма продаж за последние N дней, по датам */
+    public function getSalesByDayLastWeek(): array
+    {
+        try {
+            $sevenDaysAgo = (new \DateTime())->modify('-7 days')->format('Y-m-d');
+            
+            $results = $this->createQueryBuilder('p')
+                ->select("CAST(p.statusDate AS date) as date, SUM(p.soldPrice) as amount")
+                ->where('p.status = :status')
+                ->andWhere('p.statusDate IS NOT NULL')
+                ->andWhere('p.statusDate >= :weekAgo')
+                ->setParameter('status', PledgedItem::STATUS_SOLD)
+                ->setParameter('weekAgo', $sevenDaysAgo)
+                ->groupBy('date')
+                ->orderBy('date', 'ASC')
+                ->getQuery()
+                ->getResult();
+
+            return array_map(fn($r) => [
+                'date' => $this->formatDate($r['date']),
+                'amount' => (float)($r['amount'] ?? 0)
+            ], $results);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /** Форматирование даты для совместимости с разными драйверами */
+    private function formatDate($date): string
+    {
+        if ($date instanceof \DateTime) {
+            return $date->format('Y-m-d');
+        }
+        if ($date instanceof \DateTimeInterface) {
+            return $date->format('Y-m-d');
+        }
+        return (string)$date;
+    }
 }
+
+

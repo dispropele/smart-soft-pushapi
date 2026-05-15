@@ -3,154 +3,259 @@
 {% block page_title %}Сводка{% endblock %}
 
 {% block main %}
-<div style="max-width:1200px">
+<div class="container-fluid px-0">
 
-    <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:1.5rem;
-               color:var(--color-text);border-bottom:2px solid var(--color-primary);
-               padding-bottom:1rem">
-        Панель управления Аурум Ломбард
-    </h2>
-
-    {# ЛОМБАРД #}
-    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
-        <i class="fa fa-briefcase" style="margin-right:0.5rem;color:#8b5a3c"></i> Ломбард
-    </h3>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanTicketCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-file-text" style="font-size:1.8rem;color:#1d4e75;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Залоговые билеты</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Управление договорами</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\ClientCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-users" style="font-size:1.8rem;color:#2d6ca2;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Клиенты</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">База клиентов</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\PledgedItemCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-box" style="font-size:1.8rem;color:#7a9fb5;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Предметы залога</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Залог и витрина</span>
-        </a>
-
-        <a href="{{ path('admin_report_sold_items') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-bar-chart" style="font-size:1.8rem;color:#60b060;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Отчёт по продажам</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Продажи за период</span>
+    {# 5.1. Заголовок и кнопка #}
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <h1 class="h3 mb-0 text-dark">Сводка</h1>
+        <a href="{{ createTicketUrl }}" class="btn btn-primary">
+            <i class="fa fa-plus me-2"></i>Создать залоговый билет
         </a>
     </div>
 
-    {# СПРАВОЧНИКИ #}
-    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
-        <i class="fa fa-tags" style="margin-right:0.5rem;color:#d4af37"></i> Справочники
-    </h3>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\CategoryCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-folder" style="font-size:1.6rem;color:#7a9fb5;margin-bottom:.6rem"></i>
-            <span>Категории</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-cubes" style="font-size:1.6rem;color:#c0c0c0;margin-bottom:.6rem"></i>
-            <span>Металлы</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalStandardCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-certificate" style="font-size:1.6rem;color:#d4af37;margin-bottom:.6rem"></i>
-            <span>Пробы</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalColorCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-palette" style="font-size:1.6rem;color:#cd7f32;margin-bottom:.6rem"></i>
-            <span>Цвета металлов</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\GoodTypeCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-ring" style="font-size:1.6rem;color:#ffb6c1;margin-bottom:.6rem"></i>
-            <span>Виды изделий</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\InsertTypeCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-gem" style="font-size:1.6rem;color:#00ced1;margin-bottom:.6rem"></i>
-            <span>Типы вставок</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\InsertCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-diamond" style="font-size:1.6rem;color:#5bc0de;margin-bottom:.6rem"></i>
-            <span>Вставки</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\TariffCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-percent" style="font-size:1.6rem;color:#8b7355;margin-bottom:.6rem"></i>
-            <span>Тарифы</span>
-        </a>
-
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\CurrencyCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-money" style="font-size:1.6rem;color:#5cb85c;margin-bottom:.6rem"></i>
-            <span>Валюты</span>
-        </a>
+    {# 5.4.a. Верхний ряд: 3 карточки-индикатора #}
+    <div class="row g-4 mb-4">
+        <!-- Займы в рублях -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Займы в рублях (Активные)</h6>
+                    <h3 class="text-dark mb-0 fw-bold">{{ (activeLoansSum)|number_format(2, '.', ' ') }} ₽</h3>
+                </div>
+            </div>
+        </div>
+        <!-- Изделия на витрине -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Изделия на витрине</h6>
+                    <h3 class="text-dark mb-0 fw-bold">{{ (onSaleValue)|number_format(2, '.', ' ') }} ₽</h3>
+                </div>
+            </div>
+        </div>
+        <!-- Просрочка -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0" style="border-left: 4px solid #fd7e14 !important;">
+                <div class="card-body">
+                    <h6 class="text-warning text-uppercase fw-bold mb-2" style="color: #fd7e14 !important;">Просрочка (Льготный период)</h6>
+                    <h3 class="mb-0 fw-bold" style="color: #d946ef;">{{ (graceLoansSum)|number_format(2, '.', ' ') }} ₽</h3>
+                </div>
+            </div>
+        </div>
     </div>
 
-    {# СИСТЕМА #}
-    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
-        <i class="fa fa-cog" style="margin-right:0.5rem;color:#555"></i> Система
-    </h3>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\PushApiLogCrudController') }}"
-           class="ea-dashboard-card">
-            <i class="fa fa-list-alt" style="font-size:1.8rem;color:#5bc0de;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Логи Push API</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Синхронизация</span>
-        </a>
+    <div class="row g-4 mb-4">
+        {# 5.4.b. Центр (слева): График #}
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-dark mb-4">Динамика денежных потоков (Cashflow)</h5>
+                    {# 5.2. График за неделю #}
+                    <div style="position: relative; width: 100%;">
+                        <canvas id="cashflowChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# 5.4.c. Центр (справа): Последние 5 операций #}
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-dark mb-4">Последние 5 операций</h5>
+                    <div class="list-group list-group-flush">
+                        {% for op in latestOperations %}
+                            <div class="list-group-item px-0 py-3 d-flex align-items-center border-bottom">
+                                {% if op.class == 'App\\Entity\\LoanTicket' %}
+                                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 40px; height: 40px;">
+                                        <i class="fa fa-file-text"></i>
+                                    </div>
+                                    <div>
+                                        <p class="mb-1 fw-semibold small">Новый билет <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanTicketCrudController').setAction('detail').setEntityId(op.id) }}" class="text-decoration-none">{{ op.ticketNumber }}</a></p>
+                                        <p class="mb-0 text-muted" style="font-size: 0.75rem;">{{ op.issuedAt|date('d.m.Y H:i') }} &middot; {{ op.loanAmount|number_format(2, '.', ' ') }} ₽</p>
+                                    </div>
+                                {% elseif op.class == 'App\\Entity\\PledgedItem' %}
+                                    <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 40px; height: 40px;">
+                                        <i class="fa fa-shopping-cart"></i>
+                                    </div>
+                                    <div>
+                                        <p class="mb-1 fw-semibold small">Продажа <a href="{{ ea_url().setController('App\\Controller\\Admin\\PledgedItemCrudController').setAction('detail').setEntityId(op.id) }}" class="text-success text-decoration-none">{{ op.name }}</a></p>
+                                        <p class="mb-0 text-muted" style="font-size: 0.75rem;">{{ op.statusDate|date('d.m.Y H:i') }} &middot; {{ op.soldPrice|number_format(2, '.', ' ') }} ₽</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-4 mb-0">Операций пока нет.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    {# Подсказка #}
-    <div style="background:var(--color-surface-2);border:1px solid var(--color-border);
-                border-radius:var(--border-radius);padding:1.5rem;
-                font-size:.85rem;color:var(--color-text-muted);line-height:1.8;margin-top:2rem">
-        <strong style="color:var(--color-text);font-size:0.9rem">💡 Информация:</strong><br>
-        <strong>Залоговые билеты</strong> — основной документ залога: сумма займа, тариф, ставка, срок.<br>
-        <strong>Предметы залога / Витрина</strong> — изделия на хранении и в продаже.<br>
-        <strong>Тарифы</strong> — настройки ежедневных ставок; выбираются при создании билета.<br>
-        <strong>Справочники</strong> — категории, металлы, пробы, вставки и т.д.<br>
-        <strong>Логи Push API</strong> — история входящих вебхуков.
+    {# 5.3. Справочники #}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h5 class="card-title fw-bold text-dark mb-4">Справочники</h5>
+            <div class="row g-3 text-center">
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\CategoryCrudController') }}" class="d-block p-3 bg-light rounded text-decoration-none text-dark custom-hover">
+                        <i class="fa fa-folder fa-2x mb-2 text-secondary"></i><span class="d-block small fw-semibold">Категории</span>
+                    </a>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\GoodTypeCrudController') }}" class="d-block p-3 bg-light rounded text-decoration-none text-dark custom-hover">
+                        <i class="fa fa-ring fa-2x mb-2 text-secondary"></i><span class="d-block small fw-semibold">Виды изделий</span>
+                    </a>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\InsertTypeCrudController') }}" class="d-block p-3 bg-light rounded text-decoration-none text-dark custom-hover">
+                        <i class="fa fa-gem fa-2x mb-2 text-secondary"></i><span class="d-block small fw-semibold">Типы вставок</span>
+                    </a>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\InsertCrudController') }}" class="d-block p-3 bg-light rounded text-decoration-none text-dark custom-hover">
+                        <i class="fa fa-diamond fa-2x mb-2 text-secondary"></i><span class="d-block small fw-semibold">Вставки</span>
+                    </a>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalColorCrudController') }}" class="d-block p-3 bg-light rounded text-decoration-none text-dark custom-hover">
+                        <i class="fa fa-palette fa-2x mb-2 text-secondary"></i><span class="d-block small fw-semibold">Цвета металлов</span>
+                    </a>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalCrudController') }}" class="d-block p-3 bg-light rounded text-decoration-none text-dark custom-hover">
+                        <i class="fa fa-cubes fa-2x mb-2 text-secondary"></i><span class="d-block small fw-semibold">Металлы</span>
+                    </a>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\MetalStandardCrudController') }}" class="d-block p-3 bg-light rounded text-decoration-none text-dark custom-hover">
+                        <i class="fa fa-certificate fa-2x mb-2 text-secondary"></i><span class="d-block small fw-semibold">Пробы</span>
+                    </a>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\TariffCrudController') }}" class="d-block p-3 bg-light rounded text-decoration-none text-dark custom-hover">
+                        <i class="fa fa-percent fa-2x mb-2 text-secondary"></i><span class="d-block small fw-semibold">Тарифы</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
-.ea-dashboard-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 1.3rem;
-    background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    text-decoration: none;
-    color: var(--color-text);
-    font-size: .9rem;
-    transition: all .2s;
-}
-.ea-dashboard-card:hover {
-    border-color: var(--color-primary);
-    box-shadow: 0 3px 12px rgba(0,0,0,0.1);
-    color: var(--color-text);
-    text-decoration: none;
-    transform: translateY(-2px);
-}
+    .custom-hover { transition: all 0.2s ease-in-out; }
+    .custom-hover:hover { background-color: #e9ecef !important; transform: translateY(-2px); }
+    .custom-hover:hover i { color: #0d6efd !important; }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('cashflowChart')?.getContext('2d');
+    if (!ctx) return;
+
+    // Заглушка данных для проверки визуала, если переменная пустая
+    const rawData = {{ cashflowData|default('[]')|json_encode|raw }};
+    const data = rawData.length > 0 ? rawData : [
+        {date: '01.05', issued: 15000, received: 5000},
+        {date: '02.05', issued: 20000, received: 12000},
+        {date: '03.05', issued: 5000, received: 25000}
+    ];
+    
+    const labels = data.map(d => d.date);
+    const issuedData = data.map(d => d.issued);
+    const receivedData = data.map(d => d.received);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Выдано (займы)',
+                    data: issuedData,
+                    borderColor: '#dc3545', // Bootstrap Danger
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#dc3545',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                },
+                {
+                    label: 'Получено (выкупы + продажи)',
+                    data: receivedData,
+                    borderColor: '#198754', // Bootstrap Success
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#198754',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: { size: 13 }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleFont: { size: 12 },
+                    bodyFont: { size: 12 },
+                    padding: 10,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            label += new Intl.NumberFormat('ru-RU', {
+                                style: 'currency',
+                                currency: 'RUB',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).format(context.parsed.y);
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('ru-RU', {
+                                style: 'currency',
+                                currency: 'RUB',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).format(value);
+                        }
+                    }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

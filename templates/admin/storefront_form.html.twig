@@ -1,0 +1,43 @@
+{# templates/admin/storefront_form.html.twig #}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Подготовка к продаже: {{ item.name }}{% endblock %}
+
+{% block main %}
+<div class="row">
+<div class="col-md-8">
+<div class="card shadow-sm border-0">
+<div class="card-body p-4">
+
+<div class="alert alert-info mb-4">
+<i class="fa fa-info-circle"></i> Оценочная стоимость при залоге составляла: <strong>{{ item.estimatedValue|default('0') }} ₽</strong>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+<div class="mb-4">
+<label class="form-label fw-bold">Цена для витрины (₽) <span class="text-danger">*</span></label>
+<input type="number" name="soldPrice" class="form-control form-control-lg" required min="1" step="0.01" value="{{ item.estimatedValue }}">
+</div>
+
+<div class="mb-4">
+<label class="form-label fw-bold">Спецификация / Маркетинговое описание</label>
+<textarea name="specification" class="form-control" rows="4" placeholder="Например: Идеальное состояние, после ультразвуковой чистки...">{{ item.specification }}</textarea>
+</div>
+
+<div class="mb-5">
+<label class="form-label fw-bold">Загрузить фотографии изделия</label>
+<input type="file" name="imageFiles[]" class="form-control" multiple accept="image/*">
+<div class="form-text">Первое выбранное фото станет обложкой на сайте.</div>
+</div>
+
+<div class="d-flex gap-2 mt-4 pt-3 border-top">
+<button type="submit" class="btn btn-primary btn-lg"><i class="fa fa-store me-2"></i> Опубликовать на витрине</button>
+<a href="{{ ea_url().setController('App\\Controller\\Admin\\PledgedItemCrudController').setAction('index') }}" class="btn btn-secondary btn-lg">Отмена</a>
+</div>
+</form>
+
+</div>
+</div>
+</div>
+</div>
+{% endblock %}

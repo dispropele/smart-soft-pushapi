@@ -17,6 +17,7 @@ class LoanTicket
     public const STATUS_CLOSED       = 'closed';
     public const STATUS_EXPIRED      = 'expired';
     public const STATUS_REPLEDGED    = 'repledged'; // перезалог (заменён новым билетом)
+    public const STATUS_CANCELLED    = 'cancelled'; // аннулирован
 
     public const DEFAULT_LOAN_DAYS  = 30;
     public const DEFAULT_GRACE_DAYS = 30;
@@ -88,6 +89,20 @@ class LoanTicket
     #[ORM\OneToMany(mappedBy: 'loanTicket', targetEntity: PledgedItem::class, cascade: ['persist'])]
     private Collection $pledgedItems;
 
+    #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => '0'])]
+    private string $paidInterest = '0';
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => '0'])]
+    private string $paidPrincipal = '0';
+
+    /** Ежедневная ставка в % — фиксируется на момент выдачи */
+    #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 4, nullable: true)]
+    private ?string $dailyInterestRate = null;
+
+    #[ORM\ManyToOne(targetEntity: Tariff::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Tariff $tariff = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -105,6 +120,37 @@ class LoanTicket
     public function isExpired(): bool   { return $this->status === self::STATUS_EXPIRED; }
     public function isRepledged(): bool { return $this->status === self::STATUS_REPLEDGED; }
     public function isActive(): bool    { return in_array($this->status, [self::STATUS_OPEN, self::STATUS_GRACE]); }
+
+    // --- Методы расчёта ---
+
+    /** Реальное количество дней с момента выдачи (минимум 1) */
+    public function getElapsedDays(?\DateTimeInterface $atDate = null): int
+    {
+        $atDate = $atDate ?? new \DateTime();
+        $issued = (clone \DateTime::createFromInterface($this->issuedAt))->setTime(0, 0, 0);
+        $target = (clone \DateTime::createFromInterface($atDate))->setTime(0, 0, 0);
+        $days   = $issued->diff($target)->days;
+        return max(1, $days);
+    }
+
+    /** Накопившийся процент на дату (с учётом ежедневной ставки) */
+    public function getAccruedInterest(?\DateTimeInterface $atDate = null): float
+    {
+        $days      = $this->getElapsedDays($atDate);
+        $principal = (float)($this->loanAmount ?? 0);
+        $rate      = (float)($this->dailyInterestRate ?? 0) / 100;
+        return round($principal * $rate * $days, 2);
+    }
+
+    /** Точных дней до конца основного срока (отрицательное = просрочен) */
+    public function getExactDaysLeft(): int
+    {
+        if (!$this->returnDate) return 0;
+        $now        = (new \DateTime())->setTime(0, 0, 0);
+        $returnDate = (clone \DateTime::createFromInterface($this->returnDate))->setTime(0, 0, 0);
+        $invert     = $now > $returnDate ? -1 : 1;
+        return $now->diff($returnDate)->days * $invert;
+    }
 
     /** Дата окончания льготного периода */
     public function getGraceEndDate(): ?\DateTime
@@ -172,6 +218,7 @@ class LoanTicket
             self::STATUS_CLOSED,
             self::STATUS_EXPIRED,
             self::STATUS_REPLEDGED,
+            self::STATUS_CANCELLED,
         ];
     }
 
@@ -220,6 +267,50 @@ class LoanTicket
         if ($this->pledgedItems->removeElement($item)) {
             if ($item->getLoanTicket() === $this) $item->setLoanTicket(null);
         }
+        return $this;
+    }
+
+    public function getPaidInterest(): string
+    {
+        return $this->paidInterest;
+    }
+
+    public function setPaidInterest(string $paidInterest): static
+    {
+        $this->paidInterest = $paidInterest;
+        return $this;
+    }
+
+    public function getPaidPrincipal(): string
+    {
+        return $this->paidPrincipal;
+    }
+
+    public function setPaidPrincipal(string $paidPrincipal): static
+    {
+        $this->paidPrincipal = $paidPrincipal;
+        return $this;
+    }
+
+    public function getDailyInterestRate(): ?string
+    {
+        return $this->dailyInterestRate;
+    }
+
+    public function setDailyInterestRate(?string $dailyInterestRate): static
+    {
+        $this->dailyInterestRate = $dailyInterestRate;
+        return $this;
+    }
+
+    public function getTariff(): ?Tariff
+    {
+        return $this->tariff;
+    }
+
+    public function setTariff(?Tariff $tariff): static
+    {
+        $this->tariff = $tariff;
         return $this;
     }
 }

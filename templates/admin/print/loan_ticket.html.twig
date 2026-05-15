@@ -1,0 +1,148 @@
+{# templates/admin/print/loan_ticket.html.twig #}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Залоговый билет {{ ticket.ticketNumber }}</title>
+<style>
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { font-family: 'Times New Roman', Times, serif; font-size:12pt; color:#000; }
+  .page { width:148mm; min-height:210mm; padding:10mm; border:2px solid #000; margin:auto; }
+  .header { text-align:center; border-bottom:1px solid #000; padding-bottom:6pt; margin-bottom:8pt }
+  .title { font-size:14pt; font-weight:bold; text-transform:uppercase; letter-spacing:1px }
+  .subtitle { font-size:10pt; margin-top:2pt }
+  .number { font-size:13pt; font-weight:bold; margin-top:4pt }
+  table.info { width:100%; border-collapse:collapse; margin-bottom:8pt }
+  table.info td { padding:3pt 4pt; border:1px solid #888; font-size:11pt; vertical-align:top }
+  table.info td.label { background:#f0f0f0; font-weight:bold; width:40%; font-size:10pt }
+  .items-table { width:100%; border-collapse:collapse; margin-bottom:8pt }
+  .items-table th, .items-table td { border:1px solid #000; padding:3pt 5pt; font-size:10pt }
+  .items-table th { background:#e8e8e8; font-weight:bold; text-align:center }
+  .section-title { font-weight:bold; font-size:11pt; margin:8pt 0 4pt; text-transform:uppercase; border-bottom:1px solid #000 }
+  .conditions { font-size:9pt; line-height:1.4; background:#fafafa; border:1px solid #ccc; padding:6pt; margin-bottom:8pt }
+  .signatures { display:flex; justify-content:space-between; margin-top:14pt }
+  .sig-block { width:46%; border-top:1px solid #000; padding-top:4pt; font-size:10pt; text-align:center }
+  .stamp { border:2px dashed #000; width:50mm; height:50mm; text-align:center; line-height:50mm; font-size:9pt; color:#888; margin:0 auto }
+  @media print { .no-print { display:none } body { margin:0 } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="title">Залоговый билет</div>
+    <div class="subtitle">ООО «Аурум Ломбард» · ИНН XXXXXXXXXX · Лицензия № XXXXXXXX</div>
+    <div class="number">№ {{ ticket.ticketNumber }}</div>
+  </div>
+
+  <p class="section-title">Стороны</p>
+  <table class="info">
+    <tr>
+      <td class="label">Ломбард</td>
+      <td>ООО «Аурум Ломбард»<br>Адрес: г. Москва, ул. Примерная, д. 1</td>
+    </tr>
+    <tr>
+      <td class="label">Заёмщик (ФИО)</td>
+      <td>{{ ticket.client.fullName }}</td>
+    </tr>
+    <tr>
+      <td class="label">Паспорт</td>
+      <td>
+        {% if ticket.client.passportSeries %}{{ ticket.client.passportSeries }} {% endif %}{{ ticket.client.passportNumber }}
+      </td>
+    </tr>
+    <tr>
+      <td class="label">Адрес регистрации</td>
+      <td>{{ ticket.client.address ?? '—' }}</td>
+    </tr>
+    <tr>
+      <td class="label">Телефон</td>
+      <td>{{ ticket.client.phone ?? '—' }}</td>
+    </tr>
+  </table>
+
+  <p class="section-title">Условия займа</p>
+  <table class="info">
+    <tr>
+      <td class="label">Сумма займа</td>
+      <td><strong>{{ ticket.loanAmount|number_format(2, '.', ' ') }} руб.</strong></td>
+    </tr>
+    <tr>
+      <td class="label">Ставка (в мес.)</td>
+      <td>{{ ticket.interestRate ?? '—' }}%</td>
+    </tr>
+    {% if ticket.dailyInterestRate %}
+    <tr>
+      <td class="label">Ставка (в день)</td>
+      <td>{{ ticket.dailyInterestRate }}%</td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="label">Дата выдачи</td>
+      <td>{{ ticket.issuedAt|date('d.m.Y') }}</td>
+    </tr>
+    <tr>
+      <td class="label">Срок возврата</td>
+      <td><strong>{{ ticket.returnDate|date('d.m.Y') }}</strong></td>
+    </tr>
+    <tr>
+      <td class="label">Льготный период</td>
+      <td>{{ ticket.graceDays }} дней (до {{ ticket.graceEndDate|date('d.m.Y') }})</td>
+    </tr>
+    <tr>
+      <td class="label">Сумма к возврату</td>
+      <td><strong>{{ ticket.returnAmount|number_format(2, '.', ' ') }} руб.</strong></td>
+    </tr>
+  </table>
+
+  <p class="section-title">Предметы залога</p>
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th>№</th>
+        <th>Наименование</th>
+        <th>Металл / проба</th>
+        <th>Вес, г</th>
+        <th>Оценка, руб.</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i, item in ticket.pledgedItems %}
+      <tr>
+        <td style="text-align:center">{{ i+1 }}</td>
+        <td>{{ item.name }}</td>
+        <td>{{ item.metalStandard ?? '—' }}</td>
+        <td style="text-align:right">{{ item.scrapWeight ?? item.itemWeight ?? '—' }}</td>
+        <td style="text-align:right">{{ item.estimatedValue ? item.estimatedValue|number_format(2,'.','&thinsp;') : '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="conditions">
+    <strong>Условия хранения:</strong> Ломбард несёт ответственность за утрату или повреждение заложенной вещи в размере её оценочной стоимости. Заёмщик вправе в любое время до истечения льготного срока выкупить вещь, уплатив сумму займа и начисленные проценты.
+  </div>
+
+  <div class="signatures">
+    <div class="sig-block">
+      Представитель ломбарда<br>
+      ___________________ / ___________
+    </div>
+    <div class="sig-block">
+      Заёмщик<br>
+      ___________________ / ___________
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:10pt">
+    <div class="stamp">М.П.</div>
+  </div>
+</div>
+
+<div class="no-print" style="text-align:center;margin:20px">
+  <button onclick="window.print()" style="padding:10px 30px;font-size:14pt;cursor:pointer">
+    🖨 Распечатать
+  </button>
+  <a href="javascript:window.close()" style="margin-left:16px;font-size:12pt">Закрыть</a>
+</div>
+</body>
+</html>

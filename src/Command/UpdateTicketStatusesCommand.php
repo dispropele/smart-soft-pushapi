@@ -9,7 +9,10 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'app:tickets:update-statuses', description: 'Переводит билеты в grace/expired по дате')]
+#[AsCommand(
+    name: 'app:tickets:update-statuses',
+    description: 'Переводит билеты в grace/expired и запускает реализацию'
+)]
 class UpdateTicketStatusesCommand extends Command
 {
     public function __construct(
@@ -21,29 +24,33 @@ class UpdateTicketStatusesCommand extends Command
     {
         $now = new \DateTime();
 
-        // open → grace (срок прошёл, но grace ещё не истёк)
+        // 1. open → grace (основной срок истёк)
         $openExpired = $this->em->createQuery(
-            'SELECT t FROM App\Entity\LoanTicket t WHERE t.status = :open AND t.returnDate < :now'
-        )->setParameter('open', LoanTicket::STATUS_OPEN)->setParameter('now', $now)->getResult();
+            'SELECT t FROM App\Entity\LoanTicket t
+             WHERE t.status = :open AND t.returnDate < :now'
+        )->setParameter('open', LoanTicket::STATUS_OPEN)
+         ->setParameter('now', $now)
+         ->getResult();
 
         foreach ($openExpired as $ticket) {
             $ticket->setStatus(LoanTicket::STATUS_GRACE);
-            $output->writeln("→ grace: {$ticket->getTicketNumber()}");
+            $output->writeln("[grace]   {$ticket->getTicketNumber()}");
         }
+        $this->em->flush();
 
-        // grace → expired (grace period также прошёл)
-        $graceExpired = $this->em->createQuery(
+        // 2. grace → expired + moveToSale (grace period тоже истёк)
+        $graceTickets = $this->em->createQuery(
             'SELECT t FROM App\Entity\LoanTicket t WHERE t.status = :grace'
         )->setParameter('grace', LoanTicket::STATUS_GRACE)->getResult();
 
-        foreach ($graceExpired as $ticket) {
+        foreach ($graceTickets as $ticket) {
             if ($ticket->getGraceDaysLeft() <= 0) {
-                $ticket->setStatus(LoanTicket::STATUS_EXPIRED);
-                $output->writeln("→ expired: {$ticket->getTicketNumber()}");
+                $output->writeln("[sale]    {$ticket->getTicketNumber()} → передаётся на реализацию");
+                $this->repledgeService->moveToSale($ticket);
             }
         }
 
-        $this->em->flush();
+        $output->writeln('Готово.');
         return Command::SUCCESS;
     }
 }

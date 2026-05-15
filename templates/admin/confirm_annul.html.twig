@@ -1,0 +1,23 @@
+{# templates/admin/confirm_annul.html.twig #}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Аннулирование билета{% endblock %}
+
+{% block main %}
+<div style="max-width:500px">
+    <div style="background:#fdf3f3;border:2px solid #d9534f;border-radius:4px;padding:1.5rem;margin-bottom:1.5rem">
+        <h3 style="color:#d9534f;margin-bottom:0.5rem">⚠ Внимание!</h3>
+        <p>Вы собираетесь <strong>аннулировать</strong> залоговый билет:</p>
+        <p style="font-size:1.3rem;font-weight:bold;margin:0.5rem 0">{{ ticket.ticketNumber }}</p>
+        <p>Клиент: {{ ticket.client.fullName }}<br>Сумма займа: {{ ticket.loanAmount }} ₽</p>
+        <p style="margin-top:0.75rem;font-size:0.9em;color:#555">
+            Билет получит статус «Аннулирован» (cancelled). Нумерация сохраняется.
+            Это действие <strong>необратимо</strong>.
+        </p>
+    </div>
+    <div style="display:flex;gap:1rem">
+        <a href="{{ confirmUrl }}" class="btn btn-danger btn-lg">Да, аннулировать</a>
+        <a href="{{ backUrl }}" class="btn btn-secondary btn-lg">Отмена</a>
+    </div>
+</div>
+{% endblock %}

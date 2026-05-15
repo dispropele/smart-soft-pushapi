@@ -1,0 +1,24 @@
+{# templates/admin/repledge_form.html.twig #}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Перезалог — {{ ticket.ticketNumber }}{% endblock %}
+
+{% block main %}
+<div style="max-width:600px">
+    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:1rem;margin-bottom:1.5rem">
+        <strong>Билет:</strong> {{ ticket.ticketNumber }}<br>
+        <strong>Тело займа:</strong> {{ ticket.loanAmount }} ₽<br>
+        <strong>Накопилось процентов</strong> ({{ ticket.getElapsedDays() }} дн.):
+        <strong>{{ accrued|number_format(2, '.', ' ') }} ₽</strong>
+    </div>
+
+    {{ form_start(form) }}
+    {{ form_row(form.paymentAmount) }}
+    {{ form_row(form.extensionDays) }}
+    {{ form_row(form.notes) }}
+    <button type="submit" class="btn btn-warning btn-lg">Оформить перезалог</button>
+    <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanTicketCrudController').setAction('detail').setEntityId(ticket.id) }}"
+       class="btn btn-secondary btn-lg ms-2">Отмена</a>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

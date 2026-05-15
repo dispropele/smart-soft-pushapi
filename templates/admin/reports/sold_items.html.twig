@@ -1,0 +1,64 @@
+{# templates/admin/reports/sold_items.html.twig #}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Отчёт по продажам{% endblock %}
+
+{% block main %}
+<div style="max-width:1100px">
+    <h2>Продажи за период</h2>
+
+    <form method="GET" style="display:flex;gap:1rem;margin-bottom:1.5rem;align-items:flex-end">
+        <div>
+            <label>Дата с</label><br>
+            <input type="date" name="date_from" value="{{ dateFrom|date('Y-m-d') }}" class="form-control">
+        </div>
+        <div>
+            <label>Дата по</label><br>
+            <input type="date" name="date_to" value="{{ dateTo|date('Y-m-d') }}" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Показать</button>
+    </form>
+
+    <div style="background:#e8f5e9;border:1px solid #a5d6a7;padding:1rem;border-radius:4px;margin-bottom:1.5rem">
+        <strong>Итого продано:</strong> {{ items|length }} поз. на сумму
+        <strong>{{ total|number_format(2, '.', ' ') }} ₽</strong>
+    </div>
+
+    {% if items is empty %}
+        <p style="color:#777">За указанный период продаж не найдено.</p>
+    {% else %}
+        <table class="table table-striped table-hover" style="font-size:.9rem">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Дата продажи</th>
+                    <th>Название</th>
+                    <th>Категория</th>
+                    <th>Металл/проба</th>
+                    <th>Цена продажи</th>
+                    <th>Билет</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in items %}
+                <tr>
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.statusDate|date('dd.MM.yyyy') }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.category ? item.category.name : '—' }}</td>
+                    <td>{{ item.metalStandard ? item.metalStandard : '—' }}</td>
+                    <td><strong>{{ item.soldPrice|number_format(2, '.', ' ') }} ₽</strong></td>
+                    <td>
+                        {% if item.loanTicket %}
+                            <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanTicketCrudController').setAction('detail').setEntityId(item.loanTicket.id) }}">
+                                {{ item.loanTicket.ticketNumber }}
+                            </a>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

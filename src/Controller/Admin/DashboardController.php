@@ -14,6 +14,7 @@ use App\Entity\MetalColor;
 use App\Entity\MetalStandard;
 use App\Entity\PledgedItem;
 use App\Entity\PushApiLog;
+use App\Entity\Tariff;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
@@ -63,6 +64,11 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Металлы', 'fa fa-cubes', Metal::class);
         yield MenuItem::linkToCrud('Пробы', 'fa fa-certificate', MetalStandard::class);
         yield MenuItem::linkToCrud('Валюты', 'fa fa-money', Currency::class);
+        yield MenuItem::linkToCrud('Тарифы', 'fa fa-percent', Tariff::class);
+
+        yield MenuItem::section('Отчёты');
+        yield MenuItem::linkToUrl('Продажи за период', 'fa fa-bar-chart', '/admin/reports/sold-items');
+
         yield MenuItem::section('Система');
         yield MenuItem::linkToCrud('Логи Push API', 'fa fa-list-alt', PushApiLog::class);
 

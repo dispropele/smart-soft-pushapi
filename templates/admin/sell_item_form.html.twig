@@ -1,0 +1,23 @@
+{# templates/admin/sell_item_form.html.twig #}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Продажа предмета{% endblock %}
+
+{% block main %}
+<div style="max-width:500px">
+    <div style="background:#fdf3f3;border:1px solid #f5c6cb;border-radius:4px;padding:1rem;margin-bottom:1.5rem">
+        <strong>Предмет:</strong> {{ item.name }}<br>
+        <strong>Цена на витрине:</strong> {{ item.soldPrice ? item.soldPrice ~ ' ₽' : '—' }}
+    </div>
+    <p style="color:#555;margin-bottom:1rem">
+        Укажите <strong>фактическую цену продажи</strong> (может отличаться от витринной — скидка, торг и т.п.).
+    </p>
+    {{ form_start(form) }}
+    {{ form_row(form.soldPrice) }}
+    {{ form_row(form.notes) }}
+    <button type="submit" class="btn btn-danger btn-lg">Подтвердить продажу</button>
+    <a href="{{ ea_url().setController('App\\Controller\\Admin\\PledgedItemCrudController').setAction('detail').setEntityId(item.id) }}"
+       class="btn btn-secondary btn-lg ms-2">Отмена</a>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

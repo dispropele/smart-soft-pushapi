@@ -35,10 +35,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Unified CRUD for PledgedItem (заложенные предметы + товары на реализации).
- */
 class PledgedItemCrudController extends AbstractCrudController
 {
     private RequestStack $requestStack;
@@ -210,7 +210,57 @@ class PledgedItemCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
+        $sell = Action::new('sell', 'Продать', 'fa fa-money')
+            ->linkToCrudAction('sellAction')
+            ->addCssClass('btn btn-danger')
+            ->displayIf(fn(PledgedItem $p) => $p->isForSale());
+
+        return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_DETAIL, $sell);
+    }
+
+    public function sellAction(
+        AdminContext $context,
+        EntityManagerInterface $em,
+        FormFactoryInterface $formFactory
+    ): Response {
+        $entityId = (int) $context->getRequest()->query->get('entityId');
+        $item = $em->find(PledgedItem::class, $entityId);
+        if (!$item) { throw $this->createNotFoundException(); }
+
+        $form = $formFactory->create(\App\Form\SellItemType::class, [
+            'soldPrice' => $item->getSoldPrice(),
+        ]);
+        $form->handleRequest($context->getRequest());
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            $item->setSoldPrice((string)$data['soldPrice']);
+            $item->setStatus(PledgedItem::STATUS_SOLD);
+            $item->setStatusDate(new \DateTime());
+            if ($data['notes']) {
+                $item->setDescription(($item->getDescription() ?? '') . "\n[Продажа] " . $data['notes']);
+            }
+            $em->flush();
+
+            $this->addFlash('success', sprintf(
+                'Предмет «%s» продан за %s ₽.',
+                $item->getName(),
+                number_format((float)$data['soldPrice'], 2, '.', ' ')
+            ));
+
+            return $this->redirect(
+                $this->container->get(AdminUrlGenerator::class)
+                    ->setController(self::class)->setAction(Action::DETAIL)
+                    ->setEntityId($item->getId())->generateUrl()
+            );
+        }
+
+        return $this->render('admin/sell_item_form.html.twig', [
+            'item' => $item,
+            'form' => $form->createView(),
+        ]);
     }
 
     public function persistEntity(EntityManagerInterface $em, $entity): void

@@ -23,6 +23,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 class LoanTicketCrudController extends AbstractCrudController
@@ -114,6 +115,7 @@ class LoanTicketCrudController extends AbstractCrudController
                 LoanTicket::STATUS_CLOSED    => '<span style="color:#777">● Закрыт</span>',
                 LoanTicket::STATUS_EXPIRED   => '<span style="color:#d9534f;font-weight:600">● Просрочен</span>',
                 LoanTicket::STATUS_REPLEDGED => '<span style="color:#1d4e75;font-weight:600">● Перезалог</span>',
+                LoanTicket::STATUS_CANCELLED => '<span style="color:#6c757d;font-weight:600">✕ Аннулирован</span>',
                 default                      => $v ?? '—',
             })
             ->renderAsHtml()
@@ -127,6 +129,7 @@ class LoanTicketCrudController extends AbstractCrudController
                 'Закрыт'           => LoanTicket::STATUS_CLOSED,
                 'Просрочен'        => LoanTicket::STATUS_EXPIRED,
                 'Перезалог'        => LoanTicket::STATUS_REPLEDGED,
+                'Аннулирован'      => LoanTicket::STATUS_CANCELLED,
             ]);
 
         // Связи перезалога
@@ -137,6 +140,23 @@ class LoanTicketCrudController extends AbstractCrudController
         yield AssociationField::new('repledgedTo', 'Новый билет (перезалог)')
             ->onlyOnDetail()
             ->formatValue(fn($v) => $v ? (string)$v : '—');
+
+        // Оплаты (перезалог)
+        yield MoneyField::new('paidInterest', 'Оплачено процентов')
+            ->setCurrency('RUB')->setStoredAsCents(false)
+            ->onlyOnDetail();
+
+        yield MoneyField::new('paidPrincipal', 'Оплачено по телу займа')
+            ->setCurrency('RUB')->setStoredAsCents(false)
+            ->onlyOnDetail();
+
+        // Ежедневная ставка и тариф
+        yield NumberField::new('dailyInterestRate', 'Ежедневная ставка (%)')
+            ->setNumDecimals(4)
+            ->onlyOnDetail();
+
+        yield AssociationField::new('tariff', 'Тариф')
+            ->onlyOnDetail();
 
         yield TextField::new('notes', 'Примечания')
             ->setFormTypeOptions(['attr' => ['maxlength' => 10000]]);
@@ -171,11 +191,25 @@ class LoanTicketCrudController extends AbstractCrudController
             ->addCssClass('btn btn-danger')
             ->displayIf(fn(LoanTicket $t) => !$t->isClosed() && !$t->isRepledged());
 
+        $print = Action::new('print', 'Распечатать билет', 'fa fa-print')
+            ->linkToUrl(fn(LoanTicket $t) => '/admin/print/ticket/' . $t->getId())
+            ->setHtmlAttributes(['target' => '_blank'])
+            ->addCssClass('btn btn-secondary');
+
+        $annul = Action::new('annul', 'Аннулировать', 'fa fa-ban')
+            ->linkToCrudAction('annulAction')
+            ->addCssClass('btn btn-outline-danger')
+            ->displayIf(fn(LoanTicket $t) => $t->getStatus() !== LoanTicket::STATUS_CANCELLED);
+
         return $actions
+            ->remove(Crud::PAGE_INDEX, Action::DELETE)
+            ->remove(Crud::PAGE_DETAIL, Action::DELETE)
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_DETAIL, $repledge)
             ->add(Crud::PAGE_DETAIL, $redeem)
-            ->add(Crud::PAGE_DETAIL, $moveToSale);
+            ->add(Crud::PAGE_DETAIL, $moveToSale)
+            ->add(Crud::PAGE_DETAIL, $print)
+            ->add(Crud::PAGE_DETAIL, $annul);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -188,6 +222,7 @@ class LoanTicketCrudController extends AbstractCrudController
                 'Закрыт'          => LoanTicket::STATUS_CLOSED,
                 'Просрочен'       => LoanTicket::STATUS_EXPIRED,
                 'Перезалог'       => LoanTicket::STATUS_REPLEDGED,
+                'Аннулирован'     => LoanTicket::STATUS_CANCELLED,
             ]));
     }
 
@@ -201,27 +236,54 @@ class LoanTicketCrudController extends AbstractCrudController
 
     // --- Custom actions ---
 
-    public function repledgeAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
-    {
+    public function repledgeAction(
+        AdminContext $context,
+        RepledgeService $service,
+        EntityManagerInterface $em,
+        FormFactoryInterface $formFactory
+    ): Response {
         $entityId = (int) $context->getRequest()->query->get('entityId');
         /** @var LoanTicket $ticket */
         $ticket = $em->find(LoanTicket::class, $entityId);
         if (!$ticket) { throw $this->createNotFoundException(); }
 
-        $new = $service->createRepledge(
-            $ticket,
-            (string) ($ticket->getLoanAmount() ?? '0'),
-            $ticket->getInterestRate()
-        );
-        $this->addFlash('success', "Перезалог создан: {$new->getTicketNumber()}");
+        $accrued = $ticket->getAccruedInterest();
+        $form = $formFactory->create(\App\Form\RepledgeType::class, [
+            'paymentAmount' => $accrued,
+            'extensionDays' => LoanTicket::DEFAULT_LOAN_DAYS,
+        ], ['accrued_interest' => $accrued]);
 
-        return $this->redirect(
-            $this->container->get(AdminUrlGenerator::class)
-                ->setController(self::class)
-                ->setAction(Action::DETAIL)
-                ->setEntityId($new->getId())
-                ->generateUrl()
-        );
+        $form->handleRequest($context->getRequest());
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            try {
+                $new = $service->createRepledge(
+                    $ticket,
+                    paymentAmount:   (string)$data['paymentAmount'],
+                    extensionDays:   (int)$data['extensionDays'],
+                    notes:           $data['notes'] ?? null
+                );
+                $this->addFlash('success', sprintf(
+                    'Перезалог оформлен. Новый билет: %s. Оплачено: %.2f ₽ (проценты) + %.2f ₽ (тело).',
+                    $new->getTicketNumber(),
+                    (float)$ticket->getPaidInterest(),
+                    (float)$ticket->getPaidPrincipal()
+                ));
+                return $this->redirect(
+                    $this->container->get(AdminUrlGenerator::class)
+                        ->setController(self::class)->setAction(Action::DETAIL)
+                        ->setEntityId($new->getId())->generateUrl()
+                );
+            } catch (\LogicException $e) {
+                $this->addFlash('warning', $e->getMessage());
+            }
+        }
+
+        return $this->render('admin/repledge_form.html.twig', [
+            'ticket'   => $ticket,
+            'form'     => $form->createView(),
+            'accrued'  => $accrued,
+        ]);
     }
 
     public function redeemAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
@@ -260,6 +322,45 @@ class LoanTicketCrudController extends AbstractCrudController
                 ->setEntityId($ticket->getId())
                 ->generateUrl()
         );
+    }
+
+    public function annulAction(AdminContext $context, EntityManagerInterface $em): Response
+    {
+        $entityId = (int) $context->getRequest()->query->get('entityId');
+        $ticket = $em->find(LoanTicket::class, $entityId);
+        if (!$ticket) { throw $this->createNotFoundException(); }
+
+        // Подтверждение через flash + GET (простой способ без отдельной формы)
+        if ($context->getRequest()->query->get('confirmed') === '1') {
+            $ticket->setStatus(LoanTicket::STATUS_CANCELLED);
+            $ticket->setClosedAt(new \DateTime());
+            $em->flush();
+
+            $this->addFlash('warning', "Билет {$ticket->getTicketNumber()} аннулирован.");
+
+            return $this->redirect(
+                $this->container->get(AdminUrlGenerator::class)
+                    ->setController(self::class)->setAction(Action::INDEX)->generateUrl()
+            );
+        }
+
+        // Показываем экран подтверждения
+        $confirmUrl = $this->container->get(AdminUrlGenerator::class)
+            ->setController(self::class)
+            ->setAction('annulAction')
+            ->setEntityId($entityId)
+            ->set('confirmed', '1')
+            ->generateUrl();
+
+        $backUrl = $this->container->get(AdminUrlGenerator::class)
+            ->setController(self::class)->setAction(Action::DETAIL)
+            ->setEntityId($entityId)->generateUrl();
+
+        return $this->render('admin/confirm_annul.html.twig', [
+            'ticket'     => $ticket,
+            'confirmUrl' => $confirmUrl,
+            'backUrl'    => $backUrl,
+        ]);
     }
 
     private function generateTicketNumber(): string

@@ -26,8 +26,8 @@ doctrine:
 when@test:
     doctrine:
         dbal:
-            # "TEST_TOKEN" is typically set by ParaTest
-            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+            # SQLite из .env.test — без dbname_suffix (иначе komissionka → komissionka_test на Render)
+            url: 'sqlite:///%kernel.project_dir%/var/test.db'
 
 when@prod:
     doctrine:

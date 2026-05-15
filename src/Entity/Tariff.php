@@ -28,7 +28,20 @@ class Tariff
 
     public function __toString(): string
     {
-        return sprintf('%s (%.4f%%/день)', $this->name ?? '', (float)$this->dailyRate);
+        return sprintf('%s · %s%%/день', $this->name ?? '', self::formatPercent((float) $this->dailyRate));
+    }
+
+    /** Процент в месяц (30 дней) для отображения и расчётов */
+    public function getMonthlyRate(): string
+    {
+        return (string) round((float) $this->dailyRate * 30, 2);
+    }
+
+    public static function formatPercent(float $value, int $maxDecimals = 2): string
+    {
+        $formatted = rtrim(rtrim(number_format($value, $maxDecimals, '.', ''), '0'), '.');
+
+        return str_replace('.', ',', $formatted);
     }
 
     public function getId(): ?int

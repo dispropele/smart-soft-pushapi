@@ -7,9 +7,12 @@
 <div style="max-width:600px">
     <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:1rem;margin-bottom:1.5rem">
         <strong>Билет:</strong> {{ ticket.ticketNumber }}<br>
-        <strong>Тело займа:</strong> {{ ticket.loanAmount }} ₽<br>
+        <strong>Тело займа:</strong> {{ ticket.loanAmount|number_format(2, '.', ' ') }} ₽<br>
         <strong>Накопилось процентов</strong> ({{ ticket.getElapsedDays() }} дн.):
-        <strong>{{ accrued|number_format(2, '.', ' ') }} ₽</strong>
+        <strong>{{ accrued|number_format(2, '.', ' ') }} ₽</strong><br>
+        <strong>Итого к погашению:</strong>
+        <strong style="color:#1d4e75">{{ totalDebt|number_format(2, '.', ' ') }} ₽</strong>
+        <span style="color:#666;font-size:.85rem"> — при полной сумме билет закрывается (выкуп)</span>
     </div>
 
     {{ form_start(form) }}

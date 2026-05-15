@@ -64,28 +64,41 @@ class PledgedItemCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
+        if ($this->isEmbeddedInLoanTicketForm()) {
+            yield from $this->configureEmbeddedInTicketFields();
+
+            return;
+        }
+
+        $isCreate = $pageName === Crud::PAGE_NEW;
+
         yield IdField::new('id', 'ID')->setMaxLength(10)->hideOnForm();
 
         yield Field::new('images', 'Фото')
-                ->setTemplatePath('admin/field/pledged_item_cover.html.twig')
-                ->setSortable(false)
-                ->onlyOnIndex();
+            ->setTemplatePath('admin/field/pledged_item_cover.html.twig')
+            ->setSortable(false)
+            ->onlyOnIndex();
+
+        yield Field::new('images', 'Фото')
+            ->setTemplatePath('admin/field/pledged_item_cover.html.twig')
+            ->onlyOnDetail();
 
         yield TextField::new('name', 'Название');
 
-        yield Field::new('imageFiles', 'Загрузить фото')
-            ->setFormType(FileType::class)
-            ->setFormTypeOptions([
-                'multiple' => true,
-                'required' => false,
-                'mapped' => false,
-                'attr' => ['accept' => 'image/*'],
-            ])
-            ->onlyOnForms();
+        if ($this->shouldShowPhotoUpload($pageName)) {
+            yield Field::new('imageFiles', 'Загрузить фото')
+                ->setFormType(FileType::class)
+                ->setFormTypeOptions([
+                    'multiple' => true,
+                    'required' => false,
+                    'mapped' => false,
+                    'attr' => ['accept' => 'image/*'],
+                ])
+                ->setHelp('Доступно только для предметов на реализации');
+        }
 
-        // --- Статус ---
         yield TextField::new('status', 'Статус')
-            ->formatValue(fn($v) => match($v) {
+            ->formatValue(fn ($v) => match ($v) {
                 PledgedItem::STATUS_PLEDGED   => '<span style="color:#1d4e75;font-weight:600">● На хранении</span>',
                 PledgedItem::STATUS_REDEEMED  => '<span style="color:#5cb85c;font-weight:600">● Выкуплен</span>',
                 PledgedItem::STATUS_FOR_SALE  => '<span style="color:#d4a017;font-weight:600">● На реализации</span>',
@@ -97,81 +110,81 @@ class PledgedItemCrudController extends AbstractCrudController
             ->renderAsHtml()
             ->hideOnForm();
 
-        yield ChoiceField::new('status', 'Статус')
-            ->onlyOnForms()
-            ->setChoices([
-                'На хранении'   => PledgedItem::STATUS_PLEDGED,
-                'Выкуплен'      => PledgedItem::STATUS_REDEEMED,
-                'На реализации' => PledgedItem::STATUS_FOR_SALE,
-                'Продан'        => PledgedItem::STATUS_SOLD,
-                'Изъят'         => PledgedItem::STATUS_WITHDRAWN,
-                'Скрыт'         => PledgedItem::STATUS_HIDDEN,
-            ]);
+        if (!$isCreate) {
+            yield ChoiceField::new('status', 'Статус')
+                ->onlyOnForms()
+                ->setChoices([
+                    'На хранении'   => PledgedItem::STATUS_PLEDGED,
+                    'Выкуплен'      => PledgedItem::STATUS_REDEEMED,
+                    'На реализации' => PledgedItem::STATUS_FOR_SALE,
+                    'Продан'        => PledgedItem::STATUS_SOLD,
+                    'Изъят'         => PledgedItem::STATUS_WITHDRAWN,
+                    'Скрыт'         => PledgedItem::STATUS_HIDDEN,
+                ]);
+        }
 
-        // --- Привязки ---
         yield AssociationField::new('loanTicket', 'Залоговый билет')
             ->autocomplete()
-            ->setRequired(false);
+            ->setRequired(false)
+            ->onlyOnForms()
+            ->onlyWhenUpdating();
 
-        yield AssociationField::new('category', 'Категория')->onlyOnForms()->autocomplete();
-        yield AssociationField::new('goodType', 'Вид изделия')->onlyOnForms()->autocomplete();
-
-        // --- Металл ---
-        yield AssociationField::new('metalStandard', 'Металл / проба')->onlyOnForms()->autocomplete();
-        yield AssociationField::new('metalColor', 'Цвет металла')->onlyOnForms()->autocomplete();
-
-        // --- Вставка ---
-        yield AssociationField::new('insert', 'Вставка')->onlyOnForms()->autocomplete();
-        yield NumberField::new('insertWeight', 'Вес вставки (кт/г)')
-            ->setNumDecimals(2)->onlyOnForms();
-        yield TextField::new('insertDescription', 'Описание вставки')->onlyOnForms();
-
-        // --- Параметры ---
-        yield TextField::new('size', 'Размер')->onlyOnForms();
+        yield AssociationField::new('goodType', 'Вид изделия')->autocomplete()->onlyOnForms();
+        yield AssociationField::new('metalStandard', 'Металл / проба')->autocomplete()->onlyOnForms();
 
         yield NumberField::new('itemWeight', 'Вес изделия (г)')
-            ->setNumDecimals(2)->onlyOnForms()
-            ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]]);
-
-        yield NumberField::new('scrapWeight', 'Вес лома (г)')
-            ->setNumDecimals(2)->onlyOnForms()
-            ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]]);
-
-        // --- Стоимости ---
+            ->setNumDecimals(2)
+            ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]])
+            ->onlyOnForms();
 
         yield MoneyField::new('estimatedValue', 'Оценочная стоимость')
-            ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnForms();
+            ->setCurrency('RUB')
+            ->setStoredAsCents(false)
+            ->onlyOnForms();
 
-        yield MoneyField::new('redemptionAmount', 'Сумма выкупа')
-            ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnForms();
+        yield TextareaField::new('description', 'Описание')
+            ->setNumOfRows(3)
+            ->setRequired(false)
+            ->onlyOnForms();
 
-        yield MoneyField::new('soldPrice', 'Цена продажи')
-            ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnForms();
+        if (!$isCreate) {
+            yield AssociationField::new('metalColor', 'Цвет металла')->autocomplete()->onlyOnForms();
+            yield AssociationField::new('insert', 'Вставка')->autocomplete()->onlyOnForms();
+            yield NumberField::new('insertWeight', 'Вес вставки (кт/г)')->setNumDecimals(2)->onlyOnForms();
+            yield TextField::new('insertDescription', 'Описание вставки')->onlyOnForms();
+            yield TextField::new('size', 'Размер')->onlyOnForms();
+            yield NumberField::new('scrapWeight', 'Вес лома (г)')
+                ->setNumDecimals(2)
+                ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]])
+                ->onlyOnForms();
+            yield MoneyField::new('redemptionAmount', 'Сумма выкупа')
+                ->setCurrency('RUB')
+                ->setStoredAsCents(false)
+                ->onlyOnForms();
+            yield MoneyField::new('soldPrice', 'Цена продажи')
+                ->setCurrency('RUB')
+                ->setStoredAsCents(false)
+                ->onlyOnForms();
+            yield TextField::new('condition', 'Состояние')->onlyOnForms();
+            yield DateTimeField::new('publishedAt', 'Дата публикации')
+                ->setFormat('dd.MM.yyyy HH:mm')
+                ->onlyOnForms();
+            yield DateTimeField::new('redemptionDate', 'Дата выкупа')
+                ->setFormat('dd.MM.yyyy HH:mm')
+                ->onlyOnForms();
+        }
 
         yield TextField::new('soldPrice', 'Цена')
-            ->formatValue(fn($v, $e) => $v
-                ? number_format((float)$v, 0, '.', ' ') . ' ₽'
+            ->formatValue(fn ($v) => $v
+                ? number_format((float) $v, 0, '.', ' ') . ' ₽'
                 : '—')
             ->onlyOnIndex();
 
-        yield TextField::new('condition', 'Состояние')->onlyOnForms();
-
-        yield TextareaField::new('description', 'Описание')->setNumOfRows(3)->onlyOnForms();
-        yield TextareaField::new('specification', 'Спецификация')->setNumOfRows(3)->onlyOnDetail();
-
-        // --- Даты ---
         yield DateTimeField::new('statusDate', 'Дата статуса')
-            ->setFormat('dd.MM.yyyy HH:mm')->hideOnForm();
+            ->setFormat('dd.MM.yyyy HH:mm')
+            ->hideOnForm();
 
-        yield DateTimeField::new('publishedAt', 'Дата публикации')
-            ->setFormat('dd.MM.yyyy HH:mm')->onlyOnForms();
-
-        yield DateTimeField::new('redemptionDate', 'Дата выкупа')
-            ->setFormat('dd.MM.yyyy HH:mm')->onlyOnForms();
-
-        // --- Detail ---
         yield AssociationField::new('loanTicket', 'Залоговый билет')->onlyOnDetail();
-        yield AssociationField::new('category', 'Категория')->onlyOnDetail();
         yield AssociationField::new('goodType', 'Вид изделия')->onlyOnDetail();
         yield AssociationField::new('metalStandard', 'Металл / проба')->onlyOnDetail();
         yield AssociationField::new('metalColor', 'Цвет металла')->onlyOnDetail();
@@ -182,19 +195,25 @@ class PledgedItemCrudController extends AbstractCrudController
         yield TextField::new('itemWeight', 'Вес изделия (г)')->onlyOnDetail();
         yield TextField::new('scrapWeight', 'Вес лома (г)')->onlyOnDetail();
         yield MoneyField::new('estimatedValue', 'Оценочная стоимость')
-            ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
+            ->setCurrency('RUB')
+            ->setStoredAsCents(false)
+            ->onlyOnDetail();
         yield MoneyField::new('redemptionAmount', 'Сумма выкупа')
-            ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
+            ->setCurrency('RUB')
+            ->setStoredAsCents(false)
+            ->onlyOnDetail();
         yield MoneyField::new('soldPrice', 'Цена продажи')
-            ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
-        // currency removed from admin views per request
+            ->setCurrency('RUB')
+            ->setStoredAsCents(false)
+            ->onlyOnDetail();
         yield TextField::new('condition', 'Состояние')->onlyOnDetail();
         yield TextareaField::new('description', 'Описание')->onlyOnDetail();
-        yield TextareaField::new('specification', 'Спецификация')->onlyOnDetail();
         yield DateTimeField::new('publishedAt', 'Дата публикации')
-            ->setFormat('dd.MM.yyyy HH:mm')->onlyOnDetail();
+            ->setFormat('dd.MM.yyyy HH:mm')
+            ->onlyOnDetail();
         yield DateTimeField::new('redemptionDate', 'Дата выкупа')
-            ->setFormat('dd.MM.yyyy HH:mm')->onlyOnDetail();
+            ->setFormat('dd.MM.yyyy HH:mm')
+            ->onlyOnDetail();
         yield TextField::new('status', 'Статус')
             ->formatValue(fn ($v) => match ($v) {
                 PledgedItem::STATUS_PLEDGED   => 'На хранении',
@@ -206,6 +225,53 @@ class PledgedItemCrudController extends AbstractCrudController
                 default                       => $v ?? '—',
             })
             ->onlyOnDetail();
+    }
+
+    private function isEmbeddedInLoanTicketForm(): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (!$request) {
+            return false;
+        }
+
+        return LoanTicketCrudController::class === $request->attributes->get('crudControllerFqcn');
+    }
+
+    /**
+     * @return iterable<\EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface>
+     */
+    private function configureEmbeddedInTicketFields(): iterable
+    {
+        yield IdField::new('id')->hideOnForm();
+
+        yield TextField::new('name', 'Название');
+
+        yield AssociationField::new('goodType', 'Вид изделия')->autocomplete();
+
+        yield AssociationField::new('metalStandard', 'Металл / проба')->autocomplete();
+
+        yield NumberField::new('itemWeight', 'Вес изделия (г)')
+            ->setNumDecimals(2)
+            ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]]);
+
+        yield MoneyField::new('estimatedValue', 'Оценочная стоимость')
+            ->setCurrency('RUB')
+            ->setStoredAsCents(false);
+
+        yield TextareaField::new('description', 'Описание')
+            ->setNumOfRows(2)
+            ->setRequired(false);
+    }
+
+    private function shouldShowPhotoUpload(string $pageName): bool
+    {
+        if ($pageName !== Crud::PAGE_EDIT) {
+            return false;
+        }
+
+        $instance = $this->getContext()?->getEntity()?->getInstance();
+
+        return $instance instanceof PledgedItem && $instance->isForSale();
     }
 
     public function configureActions(Actions $actions): Actions
@@ -266,6 +332,7 @@ class PledgedItemCrudController extends AbstractCrudController
     public function persistEntity(EntityManagerInterface $em, $entity): void
     {
         if ($entity instanceof PledgedItem) {
+            $this->syncCategoryFromGoodType($entity);
             $entity->setStatusDate(new \DateTime());
             if ($entity->isForSale() && !$entity->getPublishedAt()) {
                 $entity->setPublishedAt(new \DateTime());
@@ -278,6 +345,7 @@ class PledgedItemCrudController extends AbstractCrudController
     public function updateEntity(EntityManagerInterface $em, $entity): void
     {
         if ($entity instanceof PledgedItem) {
+            $this->syncCategoryFromGoodType($entity);
             $entity->setStatusDate(new \DateTime());
             if ($entity->isForSale() && !$entity->getPublishedAt()) {
                 $entity->setPublishedAt(new \DateTime());
@@ -285,6 +353,14 @@ class PledgedItemCrudController extends AbstractCrudController
             $this->handleImageUpload($entity, $em);
         }
         parent::updateEntity($em, $entity);
+    }
+
+    private function syncCategoryFromGoodType(PledgedItem $item): void
+    {
+        $category = $item->getGoodType()?->getCategory();
+        if ($category !== null) {
+            $item->setCategory($category);
+        }
     }
 
     private function handleImageUpload(PledgedItem $entity, EntityManagerInterface $em): void
@@ -339,7 +415,7 @@ class PledgedItemCrudController extends AbstractCrudController
         return $filters
             ->add(TextFilter::new('name', 'Название'))
             ->add(EntityFilter::new('loanTicket', 'Билет'))
-            ->add(EntityFilter::new('category', 'Категория'))
+            ->add(EntityFilter::new('goodType', 'Вид изделия'))
             ->add(ChoiceFilter::new('status', 'Статус')->setChoices([
                 'На хранении'   => PledgedItem::STATUS_PLEDGED,
                 'Выкуплен'      => PledgedItem::STATUS_REDEEMED,

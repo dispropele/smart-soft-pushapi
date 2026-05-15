@@ -47,13 +47,15 @@ class SeedAllCommand extends Command
                 $conn->executeStatement("TRUNCATE TABLE $table CASCADE");
             }
             foreach ([
-                'categories_id_seq','currencies_id_seq',
-                'clients_id_seq','pledged_item_images_id_seq',
-                'good_types_id_seq','insert_types_id_seq','inserts_id_seq',
-                'metal_colors_id_seq','metal_standards_id_seq','metals_id_seq',
-                'loan_tickets_id_seq','pledged_items_id_seq',
+                'categories_id_seq', 'currencies_id_seq',
+                'clients_id_seq', 'pledged_item_images_id_seq',
+                'good_types_id_seq', 'insert_types_id_seq', 'inserts_id_seq',
+                'metal_colors_id_seq', 'metal_standards_id_seq', 'metals_id_seq',
+                'loan_tickets_id_seq', 'pledged_items_id_seq',
             ] as $seq) {
-                try { $conn->executeStatement("ALTER SEQUENCE $seq RESTART WITH 1"); } catch (\Exception) {}
+                try {
+                    $conn->executeStatement("ALTER SEQUENCE $seq RESTART WITH 1");
+                } catch (\Exception) {}
             }
             $io->success('Таблицы очищены');
         }
@@ -79,7 +81,7 @@ class SeedAllCommand extends Command
 
         $io->section('Типы и наименования вставок…');
         $insertTypes = [
-            'Драгоценные камни' => 'precious',
+            'Драгоценные камни'     => 'precious',
             'Полудрагоценные камни' => 'semi',
             'Синтетические вставки' => 'synthetic',
         ];
@@ -93,9 +95,9 @@ class SeedAllCommand extends Command
         $this->em->flush();
 
         $inserts = [
-            'Драгоценные камни' => ['Бриллиант', 'Фианит', 'Изумруд', 'Сапфир', 'Рубин'],
+            'Драгоценные камни'     => ['Бриллиант', 'Изумруд', 'Сапфир', 'Рубин'],
             'Полудрагоценные камни' => ['Топаз', 'Аметист', 'Жемчуг', 'Оникс'],
-            'Синтетические вставки' => ['Кубический цирконий'],
+            'Синтетические вставки' => ['Фианит', 'Кубический цирконий'],
         ];
         $insertMap = [];
         foreach ($inserts as $typeName => $names) {
@@ -112,8 +114,8 @@ class SeedAllCommand extends Command
 
         $io->section('Цвета металла…');
         $colors = [
-            ['Жёлтое золото', 'yellow_gold'],
-            ['Белое золото', 'white_gold'],
+            ['Жёлтое золото',  'yellow_gold'],
+            ['Белое золото',   'white_gold'],
             ['Розовое золото', 'rose_gold'],
             ['Платина (цвет)', 'platinum'],
             ['Серебро (цвет)', 'silver'],
@@ -130,12 +132,12 @@ class SeedAllCommand extends Command
 
         $io->section('Металлы и пробы…');
         $metalData = [
-            'Золото' => ['375', '585', '750', '999'],
-            'Серебро' => ['925', '875', '830'],
-            'Платина' => ['950', '850'],
+            'Золото'   => ['375', '585', '750', '999'],
+            'Серебро'  => ['925', '875', '830'],
+            'Платина'  => ['950', '850'],
             'Палладий' => ['500', '850'],
         ];
-        $metalMap = [];
+        $metalMap    = [];
         $standardMap = [];
         foreach ($metalData as $mName => $standards) {
             $metal = new Metal();
@@ -154,41 +156,13 @@ class SeedAllCommand extends Command
 
         $io->section('Виды изделий…');
         $typeData = [
-            'Кольца' => [
-                ['Помолвочные', 'engagement'],
-                ['Классические', 'classic_ring'],
-                ['Обручальные', 'wedding_band'],
-            ],
-            'Серьги' => [
-                ['Пусеты', 'studs'],
-                ['Конго', 'hoops'],
-                ['Длинные', 'dangles'],
-            ],
-            'Цепи' => [
-                ['Якорное плетение', 'anchor'],
-                ['Фигаро', 'figaro'],
-                ['Бисмарк', 'box'],
-            ],
-            'Браслеты' => [
-                ['Теннисные', 'tennis'],
-                ['Классические', 'classic_bracelet'],
-                ['Жёсткие', 'cuff'],
-            ],
-            'Подвески' => [
-                ['Сердечко', 'heart'],
-                ['Крест', 'cross'],
-                ['Геометрия', 'geometric_pendant'],
-            ],
-            'Броши' => [
-                ['Цветы', 'flower'],
-                ['Животные', 'animal'],
-                ['Абстракция', 'geometric_brooch'],
-            ],
-            'Колье' => [
-                ['В один ряд', 'single_row'],
-                ['Многоярусные', 'multi_row'],
-                ['Каскадные', 'layered'],
-            ],
+            'Кольца'    => [['Помолвочные', 'engagement'], ['Классические', 'classic_ring'], ['Обручальные', 'wedding_band']],
+            'Серьги'    => [['Пусеты', 'studs'], ['Конго', 'hoops'], ['Длинные', 'dangles']],
+            'Цепи'      => [['Якорное плетение', 'anchor'], ['Фигаро', 'figaro'], ['Бисмарк', 'box']],
+            'Браслеты'  => [['Теннисные', 'tennis'], ['Классические', 'classic_bracelet'], ['Жёсткие', 'cuff']],
+            'Подвески'  => [['Сердечко', 'heart'], ['Крест', 'cross'], ['Геометрия', 'geometric_pendant']],
+            'Броши'     => [['Цветы', 'flower'], ['Животные', 'animal'], ['Абстракция', 'geometric_brooch']],
+            'Колье'     => [['В один ряд', 'single_row'], ['Многоярусные', 'multi_row'], ['Каскадные', 'layered']],
         ];
         $goodTypeByCatAndName = [];
         foreach ($typeData as $catName => $types) {
@@ -205,89 +179,44 @@ class SeedAllCommand extends Command
         $this->em->flush();
         $io->writeln('✓ Виды изделий');
 
-        $io->section('Филиал (справочник, без привязки к витрине)…');
-        $this->merchant(1, 'Ломбард «Аурум»', $moscow,
-            'ул. Арбат, д. 25', '+7 (495) 555-01-01', 'Ювелирный ломбард в центре Москвы.');
-        $this->em->flush();
-        $io->writeln('✓ Филиал создан (для справочника / API)');
-
         $io->section('Позиции на витрине…');
 
         $itemsData = [
             [
                 1001,
                 'Золотое кольцо с бриллиантами, 585 проба',
-                'Кольца',
-                'Помолвочные',
-                'Золото',
-                '585',
-                'white_gold',
-                'Бриллиант',
-                '17.5',
-                85000,
+                'Кольца', 'Помолвочные',
+                'Золото', '585', 'white_gold', 'Бриллиант',
+                '17.5', 85000,
                 'Вес изделия 3,8 г. Восемь бриллиантов огранки круг по 0,05 ct.',
-                '3.80',
-                '3.20',
-                '0.40',
-                'Бриллианты круглой огранки, чистота VS–SI',
-                'Отличное',
+                '3.80', '3.20', '0.40', 'Бриллианты круглой огранки, чистота VS–SI', 'Отличное',
             ],
             [
                 1002,
                 'Золотые серьги с сапфирами',
-                'Серьги',
-                'Пусеты',
-                'Золото',
-                '585',
-                'yellow_gold',
-                'Сапфир',
-                null,
-                42000,
+                'Серьги', 'Пусеты',
+                'Золото', '585', 'yellow_gold', 'Сапфир',
+                null, 42000,
                 'Природные сапфиры. Вес пары 3,2 г.',
-                '3.20',
-                '2.90',
-                '0.30',
-                'Сапфиры овальной огранки',
-                'Хорошее',
+                '3.20', '2.90', '0.30', 'Сапфиры овальной огранки', 'Хорошее',
             ],
             [
                 1003,
                 'Золотая цепь якорного плетения',
-                'Цепи',
-                'Якорное плетение',
-                'Золото',
-                '585',
-                'yellow_gold',
-                null,
-                '55 см',
-                36000,
+                'Цепи', 'Якорное плетение',
+                'Золото', '585', 'yellow_gold', null,
+                '55 см', 36000,
                 'Длина 55 см, ширина звена 3 мм. Вес 7,5 г.',
-                '7.50',
-                '7.50',
-                null,
-                null,
-                'Отличное',
+                '7.50', '7.50', null, null, 'Отличное',
             ],
         ];
 
         foreach ($itemsData as $row) {
             [
-                $id,
-                $name,
-                $catName,
-                $typeName,
-                $metalName,
-                $standard,
-                $colorCode,
-                $insertName,
-                $size,
-                $price,
-                $desc,
-                $itemWeight,
-                $scrapWeight,
-                $insertWeight,
-                $insertDescription,
-                $condition,
+                $id, $name, $catName, $typeName,
+                $metalName, $standard, $colorCode, $insertName,
+                $size, $price, $desc,
+                $itemWeight, $scrapWeight, $insertWeight, $insertDescription, $condition,
             ] = $row;
 
             $item = new PledgedItem();
@@ -299,12 +228,9 @@ class SeedAllCommand extends Command
                 ->setDescription($desc)
                 ->setPublishedAt(new \DateTime());
 
-            if ($size !== null) {
-                $item->setSize($size);
-            }
-            if (isset($categories[$catName])) {
-                $item->setCategory($categories[$catName]);
-            }
+            if ($size !== null)             { $item->setSize($size); }
+            if (isset($categories[$catName])) { $item->setCategory($categories[$catName]); }
+
             $gtKey = $catName . '|' . $typeName;
             if (isset($goodTypeByCatAndName[$gtKey])) {
                 $item->setGoodType($goodTypeByCatAndName[$gtKey]);
@@ -318,21 +244,11 @@ class SeedAllCommand extends Command
             if (isset($standardMap["$metalName-$standard"])) {
                 $item->setMetalStandard($standardMap["$metalName-$standard"]);
             }
-            if ($itemWeight !== null) {
-                $item->setItemWeight($itemWeight);
-            }
-            if ($scrapWeight !== null) {
-                $item->setScrapWeight($scrapWeight);
-            }
-            if ($insertWeight !== null) {
-                $item->setInsertWeight($insertWeight);
-            }
-            if ($insertDescription !== null) {
-                $item->setInsertDescription($insertDescription);
-            }
-            if ($condition !== null) {
-                $item->setCondition($condition);
-            }
+            if ($itemWeight !== null)        { $item->setItemWeight($itemWeight); }
+            if ($scrapWeight !== null)       { $item->setScrapWeight($scrapWeight); }
+            if ($insertWeight !== null)      { $item->setInsertWeight($insertWeight); }
+            if ($insertDescription !== null) { $item->setInsertDescription($insertDescription); }
+            if ($condition !== null)         { $item->setCondition($condition); }
 
             $this->em->persist($item);
         }

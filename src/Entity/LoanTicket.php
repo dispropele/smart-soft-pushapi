@@ -142,6 +142,12 @@ class LoanTicket
         return round($principal * $rate * $days, 2);
     }
 
+    /** Полная сумма к погашению: тело займа + накопленные проценты */
+    public function getTotalDebt(?\DateTimeInterface $atDate = null): float
+    {
+        return round((float) ($this->loanAmount ?? 0) + $this->getAccruedInterest($atDate), 2);
+    }
+
     /** Точных дней до конца основного срока (отрицательное = просрочен) */
     public function getExactDaysLeft(): int
     {
@@ -241,7 +247,13 @@ class LoanTicket
     public function getClosedAt(): ?\DateTimeInterface { return $this->closedAt; }
     public function setClosedAt(?\DateTimeInterface $v): static { $this->closedAt = $v; return $this; }
     public function getStatus(): string { return $this->status; }
-    public function setStatus(string $v): static { $this->status = $v; return $this; }
+    public function setStatus(?string $v): static
+    {
+        if ($v !== null) {
+            $this->status = $v;
+        }
+        return $this;
+    }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $v): static { $this->notes = $v; return $this; }
     public function getRepledgedTo(): ?self { return $this->repledgedTo; }

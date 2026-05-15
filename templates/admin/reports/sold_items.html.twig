@@ -7,16 +7,17 @@
 <div style="max-width:1100px">
     <h2>Продажи за период</h2>
 
-    <form method="GET" style="display:flex;gap:1rem;margin-bottom:1.5rem;align-items:flex-end">
+    <form method="GET" style="display:flex;gap:1rem;margin-bottom:1.5rem;align-items:flex-end;flex-wrap:wrap">
         <div>
-            <label>Дата с</label><br>
+            <label style="display:block;font-size:.85rem;font-weight:600;margin-bottom:.3rem">Дата с</label>
             <input type="date" name="date_from" value="{{ dateFrom|date('Y-m-d') }}" class="form-control">
         </div>
         <div>
-            <label>Дата по</label><br>
+            <label style="display:block;font-size:.85rem;font-weight:600;margin-bottom:.3rem">Дата по</label>
             <input type="date" name="date_to" value="{{ dateTo|date('Y-m-d') }}" class="form-control">
         </div>
         <button type="submit" class="btn btn-primary">Показать</button>
+        <a href="{{ path('admin_report_sold_items') }}" class="btn btn-secondary">Сброс</a>
     </form>
 
     <div style="background:#e8f5e9;border:1px solid #a5d6a7;padding:1rem;border-radius:4px;margin-bottom:1.5rem">
@@ -34,7 +35,7 @@
                     <th>Дата продажи</th>
                     <th>Название</th>
                     <th>Категория</th>
-                    <th>Металл/проба</th>
+                    <th>Металл / проба</th>
                     <th>Цена продажи</th>
                     <th>Билет</th>
                 </tr>
@@ -43,11 +44,20 @@
             {% for item in items %}
                 <tr>
                     <td>{{ item.id }}</td>
-                    <td>{{ item.statusDate|date('dd.MM.yyyy') }}</td>
+                    {# Исправлен формат: используем PHP-стиль для Twig date() #}
+                    <td>{{ item.statusDate ? item.statusDate|date('d.m.Y') : '—' }}</td>
                     <td>{{ item.name }}</td>
                     <td>{{ item.category ? item.category.name : '—' }}</td>
                     <td>{{ item.metalStandard ? item.metalStandard : '—' }}</td>
-                    <td><strong>{{ item.soldPrice|number_format(2, '.', ' ') }} ₽</strong></td>
+                    <td>
+                        <strong>
+                            {% if item.soldPrice %}
+                                {{ item.soldPrice|number_format(2, '.', ' ') }} ₽
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </td>
                     <td>
                         {% if item.loanTicket %}
                             <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanTicketCrudController').setAction('detail').setEntityId(item.loanTicket.id) }}">

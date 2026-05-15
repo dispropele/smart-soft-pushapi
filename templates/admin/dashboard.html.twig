@@ -36,6 +36,13 @@
             <span style="font-weight:600">Предметы залога</span>
             <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Залог и витрина</span>
         </a>
+
+        <a href="{{ path('admin_report_sold_items') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-bar-chart" style="font-size:1.8rem;color:#60b060;margin-bottom:.8rem"></i>
+            <span style="font-weight:600">Отчёт по продажам</span>
+            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Продажи за период</span>
+        </a>
     </div>
 
     {# СПРАВОЧНИКИ #}
@@ -84,18 +91,17 @@
             <i class="fa fa-diamond" style="font-size:1.6rem;color:#5bc0de;margin-bottom:.6rem"></i>
             <span>Вставки</span>
         </a>
-    </div>
 
-    {# ГОРОДА #}
-    <h3 style="font-size:1rem;font-weight:600;margin-top:2rem;margin-bottom:1rem;color:var(--color-text)">
-        <i class="fa fa-map-marker" style="margin-right:0.5rem;color:#8b7355"></i> География
-    </h3>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\CityCrudController') }}"
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\TariffCrudController') }}"
            class="ea-dashboard-card">
-            <i class="fa fa-building-o" style="font-size:1.8rem;color:#5a7a8c;margin-bottom:.8rem"></i>
-            <span style="font-weight:600">Города</span>
-            <span style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.5rem">Справочник</span>
+            <i class="fa fa-percent" style="font-size:1.6rem;color:#8b7355;margin-bottom:.6rem"></i>
+            <span>Тарифы</span>
+        </a>
+
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\CurrencyCrudController') }}"
+           class="ea-dashboard-card">
+            <i class="fa fa-money" style="font-size:1.6rem;color:#5cb85c;margin-bottom:.6rem"></i>
+            <span>Валюты</span>
         </a>
     </div>
 
@@ -117,10 +123,11 @@
                 border-radius:var(--border-radius);padding:1.5rem;
                 font-size:.85rem;color:var(--color-text-muted);line-height:1.8;margin-top:2rem">
         <strong style="color:var(--color-text);font-size:0.9rem">💡 Информация:</strong><br>
-        <strong>Залоговые билеты</strong> — основной документ залога с информацией о сумме займа, ставке и сроке.<br>
-        <strong>Заложенное имущество</strong> — описание каждого предмета (тип, металл, проба, вес, оценка).<br>
-        <strong>Справочники</strong> — классификаторы и справочные данные (категории, металлы, пробы и т.д.).<br>
-        <strong>Логи Push API</strong> — история входящих вебхуков (товары и события).<br>
+        <strong>Залоговые билеты</strong> — основной документ залога: сумма займа, тариф, ставка, срок.<br>
+        <strong>Предметы залога / Витрина</strong> — изделия на хранении и в продаже.<br>
+        <strong>Тарифы</strong> — настройки ежедневных ставок; выбираются при создании билета.<br>
+        <strong>Справочники</strong> — категории, металлы, пробы, вставки и т.д.<br>
+        <strong>Логи Push API</strong> — история входящих вебхуков.
     </div>
 </div>
 

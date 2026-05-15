@@ -67,7 +67,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Тарифы', 'fa fa-percent', Tariff::class);
 
         yield MenuItem::section('Отчёты');
-        yield MenuItem::linkToUrl('Продажи за период', 'fa fa-bar-chart', '/admin/reports/sold-items');
+        yield MenuItem::linkTo(ReportController::class, 'Продажи за период', 'fa fa-bar-chart');
 
         yield MenuItem::section('Система');
         yield MenuItem::linkToCrud('Логи Push API', 'fa fa-list-alt', PushApiLog::class);

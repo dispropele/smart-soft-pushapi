@@ -7,7 +7,6 @@
 
     {# 5.1. Заголовок и кнопка #}
     <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-        <h1 class="h3 mb-0 text-dark">Сводка</h1>
         <a href="{{ createTicketUrl }}" class="btn btn-primary">
             <i class="fa fa-plus me-2"></i>Создать залоговый билет
         </a>
@@ -49,7 +48,7 @@
         <div class="col-lg-8">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold text-dark mb-4">Динамика денежных потоков (Cashflow)</h5>
+                    <h5 class="card-title fw-bold text-dark mb-4">Динамика денежных потоков</h5>
                     {# 5.2. График за неделю #}
                     <div style="position: relative; width: 100%;">
                         <canvas id="cashflowChart"></canvas>
@@ -157,11 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Заглушка данных для проверки визуала, если переменная пустая
     const rawData = {{ cashflowData|default('[]')|json_encode|raw }};
-    const data = rawData.length > 0 ? rawData : [
-        {date: '01.05', issued: 15000, received: 5000},
-        {date: '02.05', issued: 20000, received: 12000},
-        {date: '03.05', issued: 5000, received: 25000}
-    ];
+    const data = rawData;
     
     const labels = data.map(d => d.date);
     const issuedData = data.map(d => d.issued);

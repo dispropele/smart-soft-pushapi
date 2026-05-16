@@ -109,24 +109,22 @@ class LoanTicketRepository extends ServiceEntityRepository
     public function getIssuedByDayLastWeek(): array
     {
         try {
-            $sevenDaysAgo = (new \DateTime())->modify('-7 days')->format('Y-m-d');
-            
-            $results = $this->createQueryBuilder('lt')
-                ->select("CAST(lt.issuedAt AS date) as date, SUM(lt.loanAmount) as amount")
-                ->where('lt.issuedAt >= :weekAgo')
-                ->setParameter('weekAgo', $sevenDaysAgo)
-                ->groupBy('date')
-                ->orderBy('date', 'ASC')
-                ->getQuery()
-                ->getResult();
+        $conn = $this->getEntityManager()->getConnection();
+        $rows = $conn->executeQuery(
+            "SELECT DATE(issued_at) as date, SUM(loan_amount) as amount
+             FROM loan_tickets
+             WHERE issued_at >= NOW() - INTERVAL '7 days'
+             GROUP BY DATE(issued_at)
+             ORDER BY date ASC"
+        )->fetchAllAssociative();
 
-            return array_map(fn($r) => [
-                'date' => $this->formatDate($r['date']),
-                'amount' => (float)($r['amount'] ?? 0)
-            ], $results);
-        } catch (\Exception $e) {
-            return [];
-        }
+        return array_map(fn($r) => [
+            'date'   => (string) $r['date'],
+            'amount' => (float) ($r['amount'] ?? 0),
+        ], $rows);
+    } catch (\Exception $e) {
+        return [];
+    }
     }
 
     /** Сумма погашенных займов за последние N дней (закрытые билеты), по датам
@@ -134,23 +132,20 @@ class LoanTicketRepository extends ServiceEntityRepository
     public function getClosedByDayLastWeek(): array
     {
         try {
-            $sevenDaysAgo = (new \DateTime())->modify('-7 days')->format('Y-m-d');
-            
-            $results = $this->createQueryBuilder('lt')
-                ->select("CAST(lt.closedAt AS date) as date, 
-                         SUM(lt.paidPrincipal + lt.paidInterest) as amount")
-                ->where('lt.closedAt IS NOT NULL')
-                ->andWhere('lt.closedAt >= :weekAgo')
-                ->setParameter('weekAgo', $sevenDaysAgo)
-                ->groupBy('date')
-                ->orderBy('date', 'ASC')
-                ->getQuery()
-                ->getResult();
+            $conn = $this->getEntityManager()->getConnection();
+            $rows = $conn->executeQuery(
+                "SELECT DATE(closed_at) as date, SUM(paid_principal + paid_interest) as amount
+                FROM loan_tickets
+                WHERE closed_at IS NOT NULL
+                AND closed_at >= NOW() - INTERVAL '7 days'
+                GROUP BY DATE(closed_at)
+                ORDER BY date ASC"
+            )->fetchAllAssociative();
 
             return array_map(fn($r) => [
-                'date' => $this->formatDate($r['date']),
-                'amount' => (float)($r['amount'] ?? 0)
-            ], $results);
+                'date'   => (string) $r['date'],
+                'amount' => (float) ($r['amount'] ?? 0),
+            ], $rows);
         } catch (\Exception $e) {
             return [];
         }

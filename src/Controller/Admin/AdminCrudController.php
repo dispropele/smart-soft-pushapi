@@ -62,10 +62,6 @@ class AdminCrudController extends AbstractCrudController
             ])
             ->onlyOnForms();
 
-        yield DateTimeField::new('lastLoginAt', 'Последний вход')
-            ->setFormat('dd.MM.yyyy HH:mm')
-            ->hideOnForm();
-
         yield DateTimeField::new('createdAt', 'Создан')
             ->setFormat('dd.MM.yyyy HH:mm')
             ->hideOnForm();

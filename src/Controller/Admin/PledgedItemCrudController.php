@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Entity\LoanTicket;
 use App\Entity\PledgedItem;
 use App\Entity\PledgedItemImage;
+use App\Entity\SystemLog;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -37,6 +38,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Response;
+
 
 class PledgedItemCrudController extends AbstractProtectedCrudController
 {
@@ -372,6 +374,12 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
 
         $this->addFlash('success', sprintf('Предмет «%s» архивирован.', $item->getName()));
 
+        $this->logger->info(SystemLog::CHANNEL_SALE,
+            "Предмет архивирован: {$item->getName()}",
+            [],
+            $item->getId()
+        );
+
         return $this->redirect(
             $this->container->get(AdminUrlGenerator::class)
                 ->setController(self::class)
@@ -410,6 +418,12 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
                 $item->getName(),
                 number_format((float)$data['soldPrice'], 2, '.', ' ')
             ));
+
+            $this->logger->info(SystemLog::CHANNEL_SALE,
+                "Предмет продан: {$item->getName()}",
+                ['soldPrice' => $data['soldPrice'], 'ticket' => $item->getLoanTicket()?->getTicketNumber()],
+                $item->getId()
+            );
 
             return $this->redirect(
                 $this->container->get(AdminUrlGenerator::class)
@@ -495,6 +509,11 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
         if ($item->isForSale() && (empty($item->getSoldPrice()) || (float) $item->getSoldPrice() <= 0)) {
             $errors[] = 'Товар на реализации должен иметь цену продажи.';
         }
+
+        $this->logger->warning(SystemLog::CHANNEL_SALE,
+            "Ошибка валидации предмета: " . implode('; ', $errors),
+            ['itemId' => $item->getId()]
+        );
 
         if (!empty($errors)) {
             throw new \RuntimeException(implode(' ', $errors));

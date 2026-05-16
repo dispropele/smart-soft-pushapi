@@ -2,6 +2,8 @@
 namespace App\Command;
 
 use App\Entity\LoanTicket;
+use App\Entity\SystemLog;
+
 use App\Service\RepledgeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;

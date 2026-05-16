@@ -133,24 +133,21 @@ class PledgedItemRepository extends ServiceEntityRepository
     public function getSalesByDayLastWeek(): array
     {
         try {
-            $sevenDaysAgo = (new \DateTime())->modify('-7 days')->format('Y-m-d');
-            
-            $results = $this->createQueryBuilder('p')
-                ->select("CAST(p.statusDate AS date) as date, SUM(p.soldPrice) as amount")
-                ->where('p.status = :status')
-                ->andWhere('p.statusDate IS NOT NULL')
-                ->andWhere('p.statusDate >= :weekAgo')
-                ->setParameter('status', PledgedItem::STATUS_SOLD)
-                ->setParameter('weekAgo', $sevenDaysAgo)
-                ->groupBy('date')
-                ->orderBy('date', 'ASC')
-                ->getQuery()
-                ->getResult();
+            $conn = $this->getEntityManager()->getConnection();
+            $rows = $conn->executeQuery(
+                "SELECT DATE(status_date) as date, SUM(sold_price) as amount
+                FROM pledged_items
+                WHERE status = 'sold'
+                AND status_date IS NOT NULL
+                AND status_date >= NOW() - INTERVAL '7 days'
+                GROUP BY DATE(status_date)
+                ORDER BY date ASC"
+            )->fetchAllAssociative();
 
             return array_map(fn($r) => [
-                'date' => $this->formatDate($r['date']),
-                'amount' => (float)($r['amount'] ?? 0)
-            ], $results);
+                'date'   => (string) $r['date'],
+                'amount' => (float) ($r['amount'] ?? 0),
+            ], $rows);
         } catch (\Exception $e) {
             return [];
         }

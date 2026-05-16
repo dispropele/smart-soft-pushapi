@@ -14,7 +14,7 @@ use App\Entity\Metal;
 use App\Entity\MetalColor;
 use App\Entity\MetalStandard;
 use App\Entity\PledgedItem;
-use App\Entity\PushApiLog;
+use App\Entity\SystemLog;
 use App\Entity\Tariff;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
@@ -184,7 +184,7 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::section('Система');
         yield MenuItem::linkToCrud('Администраторы', 'fa fa-user-shield', Admin::class);
-        yield MenuItem::linkToCrud('Логи Push API', 'fa fa-list-alt', PushApiLog::class);
+        yield MenuItem::linkToCrud('Системные логи', 'fa fa-list-alt', SystemLog::class);
 
         yield MenuItem::section();
         yield MenuItem::linkToUrl('← На витрину', 'fa fa-arrow-left', '/');

@@ -4,19 +4,16 @@ namespace App\Service;
 
 use App\Entity\LoanTicket;
 use App\Entity\PledgedItem;
+use App\Entity\SystemLog;
 use Doctrine\ORM\EntityManagerInterface;
 
 class RepledgeService
 {
-    public function __construct(private EntityManagerInterface $em)
-    {
-    }
+    public function __construct(
+        private EntityManagerInterface $em,
+        private SystemLogger $logger
+    ) {}
 
-    /**
-     * Перезалог с частичным выкупом изделий.
-     *
-     * @param array<int> $redeemedItemIds ID предметов, которые клиент выкупает
-     */
     public function createRepledgePartial(
         LoanTicket $original,
         array $redeemedItemIds,
@@ -31,7 +28,6 @@ class RepledgeService
         $allItems = $original->getPledgedItems()->toArray();
         $totalLoan = (float) $original->getLoanAmount();
 
-        // Calculate proportional loan body per item
         $totalEstimate = array_sum(array_map(fn($i) => (float) $i->getEstimatedValue(), $allItems));
         $itemLoans = [];
         foreach ($allItems as $item) {
@@ -40,7 +36,6 @@ class RepledgeService
                 : 0.0;
         }
 
-        // Sum of loan bodies for redeemed items
         $redeemedLoanSum = 0.0;
         foreach ($redeemedItemIds as $id) {
             $redeemedLoanSum += $itemLoans[(int)$id] ?? 0.0;
@@ -48,21 +43,22 @@ class RepledgeService
 
         $minPayment = $accruedInterest + $redeemedLoanSum;
         if ($payment < $minPayment - 0.001) {
+            $this->logger->warning(
+                SystemLog::CHANNEL_REPLEDGE,
+                "Недостаточная сумма платежа для частичного перезалога: {$original->getTicketNumber()}",
+                ['payment' => $payment, 'minRequired' => $minPayment],
+                $original->getId()
+            );
             throw new \InvalidArgumentException(sprintf(
                 'Сумма платежа (%.2f ₽) меньше минимально необходимой (%.2f ₽ = проценты %.2f + выкуп %.2f).',
-                $payment,
-                $minPayment,
-                $accruedInterest,
-                $redeemedLoanSum
+                $payment, $minPayment, $accruedInterest, $redeemedLoanSum
             ));
         }
 
         $extraPrincipal = max(0.0, $payment - $accruedInterest - $redeemedLoanSum);
         $newBody = round($totalLoan - $redeemedLoanSum - $extraPrincipal, 2);
-
         $remainingItems = array_filter($allItems, fn($i) => !in_array($i->getId(), $redeemedItemIds));
 
-        // If all items redeemed or new body ≤ 0 — full redemption
         if ($newBody <= 0 || empty($remainingItems)) {
             $original->setStatus(LoanTicket::STATUS_CLOSED);
             $original->setClosedAt($now);
@@ -73,14 +69,20 @@ class RepledgeService
                 $item->setRedemptionDate($now);
             }
             $this->em->flush();
+
+            $this->logger->info(
+                SystemLog::CHANNEL_REPLEDGE,
+                "Полный выкуп (частичный перезалог): {$original->getTicketNumber()}",
+                ['payment' => $payment, 'redeemedItems' => $redeemedItemIds],
+                $original->getId()
+            );
+
             return $original;
         }
 
-        // Record payment on original
         $original->setPaidInterest((string) round($accruedInterest, 2));
         $original->setPaidPrincipal((string) round($redeemedLoanSum + $extraPrincipal, 2));
 
-        // Create new ticket
         $new = new LoanTicket();
         $new->setTicketNumber($this->generateNumber());
         $new->setClient($original->getClient());
@@ -95,12 +97,10 @@ class RepledgeService
         $new->setNotes($notes);
         $new->setRepledgedFrom($original);
 
-        // Distribute items
         foreach ($allItems as $item) {
             if (in_array($item->getId(), $redeemedItemIds)) {
                 $item->setStatus(PledgedItem::STATUS_REDEEMED);
                 $item->setRedemptionDate($now);
-                // Keep original ticket (historical record)
             } else {
                 $item->setLoanTicket($new);
                 $item->setStatus(PledgedItem::STATUS_PLEDGED);
@@ -114,14 +114,21 @@ class RepledgeService
         $this->em->persist($new);
         $this->em->flush();
 
+        $this->logger->info(
+            SystemLog::CHANNEL_REPLEDGE,
+            "Частичный перезалог: {$original->getTicketNumber()} → {$new->getTicketNumber()}",
+            [
+                'payment'       => $payment,
+                'newBody'       => $newBody,
+                'redeemedItems' => $redeemedItemIds,
+                'extensionDays' => $extensionDays,
+            ],
+            $original->getId()
+        );
+
         return $new;
     }
 
-    /**
-     * Перезалог или полный выкуп (если платёж покрывает весь долг).
-     *
-     * @return LoanTicket закрытый билет при выкупе или новый билет при перезалоге
-     */
     public function createRepledge(
         LoanTicket $original,
         ?string $paymentAmount = null,
@@ -137,10 +144,15 @@ class RepledgeService
         $totalDebt = $original->getTotalDebt($now);
 
         if ($payment > $totalDebt + 0.001) {
+            $this->logger->warning(
+                SystemLog::CHANNEL_REPLEDGE,
+                "Сумма платежа превышает долг: {$original->getTicketNumber()}",
+                ['payment' => $payment, 'totalDebt' => $totalDebt],
+                $original->getId()
+            );
             throw new \InvalidArgumentException(sprintf(
                 'Сумма платежа (%.2f ₽) превышает долг по билету (%.2f ₽: тело займа + проценты).',
-                $payment,
-                $totalDebt
+                $payment, $totalDebt
             ));
         }
 
@@ -148,21 +160,26 @@ class RepledgeService
             $this->applyPayment($original, $payment, $now);
             $this->redeem($original);
 
+            $this->logger->info(
+                SystemLog::CHANNEL_REPLEDGE,
+                "Полный выкуп: {$original->getTicketNumber()}",
+                ['payment' => $payment, 'totalDebt' => $totalDebt],
+                $original->getId()
+            );
+
             return $original;
         }
 
-        $interestPaid = min($payment, $accruedInterest);
+        $interestPaid  = min($payment, $accruedInterest);
         $principalPaid = max(0.0, $payment - $interestPaid);
-
-        $originalBody = (float) $original->getLoanAmount();
-        $newBody = $newLoanAmount !== null
+        $originalBody  = (float) $original->getLoanAmount();
+        $newBody       = $newLoanAmount !== null
             ? (float) $newLoanAmount
             : round($originalBody - $principalPaid, 2);
 
         if ($newBody <= 0) {
             $this->applyPayment($original, $payment, $now);
             $this->redeem($original);
-
             return $original;
         }
 
@@ -195,12 +212,20 @@ class RepledgeService
         $this->em->persist($new);
         $this->em->flush();
 
+        $this->logger->info(
+            SystemLog::CHANNEL_REPLEDGE,
+            "Перезалог: {$original->getTicketNumber()} → {$new->getTicketNumber()}",
+            [
+                'payment'       => $payment,
+                'newBody'       => $newBody,
+                'extensionDays' => $extensionDays,
+            ],
+            $original->getId()
+        );
+
         return $new;
     }
 
-    /**
-     * Выкуп залога клиентом.
-     */
     public function redeem(LoanTicket $ticket, ?string $paymentAmount = null): void
     {
         if ($paymentAmount !== null) {
@@ -213,32 +238,19 @@ class RepledgeService
         foreach ($ticket->getPledgedItems() as $item) {
             $item->setStatus(PledgedItem::STATUS_REDEEMED);
             $item->setRedemptionDate(new \DateTime());
-            // Рассчитываем сумму выкупа пропорционально оценочной стоимости
             $item->setRedemptionAmount($this->calculateRedemptionAmount($ticket, $item));
         }
 
         $this->em->flush();
+
+        $this->logger->info(
+            SystemLog::CHANNEL_REPLEDGE,
+            "Выкуп залога: {$ticket->getTicketNumber()}",
+            ['payment' => $paymentAmount],
+            $ticket->getId()
+        );
     }
 
-    private function calculateRedemptionAmount(LoanTicket $ticket, PledgedItem $item): ?string
-    {
-        $totalLoan = (float) ($ticket->getLoanAmount() ?? 0);
-        $totalEstimate = 0.0;
-        foreach ($ticket->getPledgedItems() as $pi) {
-            $totalEstimate += (float) ($pi->getEstimatedValue() ?? 0);
-        }
-        $itemEstimate = (float) ($item->getEstimatedValue() ?? 0);
-        if ($totalEstimate <= 0) {
-            return null;
-        }
-        $proportion = $itemEstimate / $totalEstimate;
-        $amount = round($totalLoan * $proportion, 2);
-        return number_format($amount, 2, '.', '');
-    }
-
-    /**
-     * Перевод предметов на реализацию (ломбард забирает по истечении grace).
-     */
     public function moveToSale(LoanTicket $ticket): void
     {
         $ticket->setStatus(LoanTicket::STATUS_EXPIRED);
@@ -250,25 +262,47 @@ class RepledgeService
         }
 
         $this->em->flush();
+
+        $this->logger->info(
+            SystemLog::CHANNEL_TICKET,
+            "Предметы переданы на реализацию: {$ticket->getTicketNumber()}",
+            ['itemsCount' => count($ticket->getPledgedItems()->toArray())],
+            $ticket->getId()
+        );
     }
 
-    /**
-     * Активация льготного периода (вызывается планировщиком или вручную).
-     */
     public function activateGrace(LoanTicket $ticket): void
     {
         if ($ticket->isOpen() && $ticket->getDaysLeft() <= 0) {
             $ticket->setStatus(LoanTicket::STATUS_GRACE);
             $this->em->flush();
+
+            $this->logger->info(
+                SystemLog::CHANNEL_TICKET,
+                "Активирован льготный период: {$ticket->getTicketNumber()}",
+                [],
+                $ticket->getId()
+            );
         }
+    }
+
+    private function calculateRedemptionAmount(LoanTicket $ticket, PledgedItem $item): ?string
+    {
+        $totalLoan     = (float) ($ticket->getLoanAmount() ?? 0);
+        $totalEstimate = 0.0;
+        foreach ($ticket->getPledgedItems() as $pi) {
+            $totalEstimate += (float) ($pi->getEstimatedValue() ?? 0);
+        }
+        $itemEstimate = (float) ($item->getEstimatedValue() ?? 0);
+        if ($totalEstimate <= 0) return null;
+        return number_format(round($totalLoan * ($itemEstimate / $totalEstimate), 2), 2, '.', '');
     }
 
     private function applyPayment(LoanTicket $ticket, float $payment, \DateTimeInterface $at): void
     {
-        $accrued = $ticket->getAccruedInterest($at);
-        $interestPaid = min($payment, $accrued);
+        $accrued       = $ticket->getAccruedInterest($at);
+        $interestPaid  = min($payment, $accrued);
         $principalPaid = max(0.0, $payment - $interestPaid);
-
         $ticket->setPaidInterest((string) round($interestPaid, 2));
         $ticket->setPaidPrincipal((string) round($principalPaid, 2));
     }

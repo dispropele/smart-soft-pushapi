@@ -6,6 +6,8 @@ use App\Entity\LoanTicket;
 use App\Entity\PledgedItem;
 use App\Entity\Tariff;
 use App\Service\RepledgeService;
+use App\Entity\SystemLog;
+
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -257,7 +259,13 @@ class LoanTicketCrudController extends AbstractCrudController
             }
             $this->handleEmbeddedImageUploads($entity, $em);
         }
-        parent::persistEntity($em, $entity);
+        parent::persistEntity($em, $entity);    
+        
+        $this->logger->info(SystemLog::CHANNEL_TICKET,
+            "Создан залоговый билет: {$entity->getTicketNumber()}",
+            ['loanAmount' => $entity->getLoanAmount(), 'client' => $entity->getClient()->getFullName()],
+            $entity->getId()
+        );
     }
 
     public function updateEntity(EntityManagerInterface $em, $entity): void
@@ -473,6 +481,12 @@ class LoanTicketCrudController extends AbstractCrudController
             $this->addFlash('warning', 'Билет аннулирован. Предметы залога освобождены.');
             return $this->redirect($this->container->get(AdminUrlGenerator::class)->setAction(Action::INDEX)->generateUrl());
         }
+
+        $this->logger->warning(SystemLog::CHANNEL_TICKET,
+            "Билет аннулирован: {$ticket->getTicketNumber()}",
+            ['admin' => $this->getUser()->getUserIdentifier()],
+            $ticket->getId()
+        );
 
         return $this->render('admin/confirm_annul.html.twig', [
             'ticket' => $ticket,

@@ -173,6 +173,7 @@ public function getRedemptionDate(): ?\DateTimeInterface { return $this->redempt
 public function setRedemptionDate(?\DateTimeInterface $v): static { $this->redemptionDate = $v; return $this; }
 public function getSoldPrice(): ?string { return $this->soldPrice; }
 public function setSoldPrice(?string $v): static { $this->soldPrice = $v; return $this; }
+public function getDisplayPrice(): ?string { return $this->soldPrice ?? $this->estimatedValue; }
 public function getCondition(): ?string { return $this->condition; }
 public function setCondition(?string $v): static { $this->condition = $v; return $this; }
 public function getSpecification(): ?string { return $this->specification; }

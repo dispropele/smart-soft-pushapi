@@ -66,7 +66,7 @@
                     <div class="list-group list-group-flush">
                         {% for op in latestOperations %}
                             <div class="list-group-item px-0 py-3 d-flex align-items-center border-bottom">
-                                {% if op.class == 'App\\Entity\\LoanTicket' %}
+                                {% if op.ticketNumber is defined and op.ticketNumber %}
                                     <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 40px; height: 40px;">
                                         <i class="fa fa-file-text"></i>
                                     </div>
@@ -74,7 +74,7 @@
                                         <p class="mb-1 fw-semibold small">Новый билет <a href="{{ ea_url().setController('App\\Controller\\Admin\\LoanTicketCrudController').setAction('detail').setEntityId(op.id) }}" class="text-decoration-none">{{ op.ticketNumber }}</a></p>
                                         <p class="mb-0 text-muted" style="font-size: 0.75rem;">{{ op.issuedAt|date('d.m.Y H:i') }} &middot; {{ op.loanAmount|number_format(2, '.', ' ') }} ₽</p>
                                     </div>
-                                {% elseif op.class == 'App\\Entity\\PledgedItem' %}
+                                {% else %}
                                     <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 40px; height: 40px;">
                                         <i class="fa fa-shopping-cart"></i>
                                     </div>

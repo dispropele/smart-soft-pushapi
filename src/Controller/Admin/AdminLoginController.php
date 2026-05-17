@@ -2,8 +2,6 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\SystemLog;
-
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -17,11 +15,6 @@ class AdminLoginController extends AbstractController
         if ($this->isGranted('ROLE_ADMIN')) {
             return $this->redirectToRoute('admin');
         }
-
-        $this->logger->info(SystemLog::CHANNEL_AUTH,
-            "Вход в систему: {$admin->getUsername()}",
-            ['ip' => $request->getClientIp()]
-        );
 
         return $this->render('admin/login.html.twig', [
             'last_username' => $authenticationUtils->getLastUsername(),

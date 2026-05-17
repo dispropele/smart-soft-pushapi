@@ -6,6 +6,7 @@ use App\Entity\LoanTicket;
 use App\Entity\PledgedItem;
 use App\Entity\PledgedItemImage;
 use App\Entity\SystemLog;
+use App\Service\SystemLogger;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -13,16 +14,11 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\QueryBuilder;
-use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
-use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
-use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
-use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
@@ -44,11 +40,13 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
 {
     private RequestStack $requestStack;
     private KernelInterface $kernel;
+    private SystemLogger $logger;
 
-    public function __construct(RequestStack $requestStack, KernelInterface $kernel)
+    public function __construct(RequestStack $requestStack, KernelInterface $kernel, SystemLogger $logger)
     {
         $this->requestStack = $requestStack;
         $this->kernel = $kernel;
+        $this->logger = $logger;
     }
 
     public static function getEntityFqcn(): string { return PledgedItem::class; }
@@ -98,7 +96,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             ->renderAsHtml()
             ->hideOnForm();
 
-        // Новые поля в таблице (п.9)
         yield TextField::new('itemWeight', 'Вес')
             ->formatValue(fn ($v) => $v ? $v . ' г' : '—')
             ->onlyOnIndex();
@@ -114,7 +111,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             })
             ->onlyOnIndex();
 
-        // Логика колонки "Цена" (п.9)
         yield TextField::new('displayPrice', 'Цена')
             ->formatValue(function ($v, PledgedItem $item) {
                 if ($item->getSoldPrice()) {
@@ -152,7 +148,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             ->onlyOnForms()
             ->onlyWhenUpdating();
 
-        // Замок на вес и пробу при активном залоге (п.10a)
         yield AssociationField::new('goodType', 'Вид изделия')
             ->autocomplete()
             ->onlyOnForms()
@@ -233,7 +228,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
         }
 
         // ===== DETAIL =====
-        // Кастомный блок вместо сплошного списка полей (п.11)
         yield Field::new('detailView', 'Информация о предмете')
             ->setTemplatePath('admin/field/pledged_item_detail.html.twig')
             ->onlyOnDetail();
@@ -263,7 +257,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             ->autocomplete()
             ->setRequired(true);
 
-        // Metal selection (unmapped, used for filtering standards)
         yield Field::new('metal', 'Металл')
             ->setFormType(\Symfony\Bridge\Doctrine\Form\Type\EntityType::class)
             ->setFormTypeOptions([
@@ -276,7 +269,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
                 ],
             ]);
 
-        // Metal standard (dependent on metal selection)
         yield AssociationField::new('metalStandard', 'Проба')
             ->setFormTypeOptions([
                 'choice_attr' => function($choice) {
@@ -374,7 +366,8 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
 
         $this->addFlash('success', sprintf('Предмет «%s» архивирован.', $item->getName()));
 
-        $this->logger->info(SystemLog::CHANNEL_SALE,
+        $this->logger->info(
+            SystemLog::CHANNEL_SALE,
             "Предмет архивирован: {$item->getName()}",
             [],
             $item->getId()
@@ -419,7 +412,8 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
                 number_format((float)$data['soldPrice'], 2, '.', ' ')
             ));
 
-            $this->logger->info(SystemLog::CHANNEL_SALE,
+            $this->logger->info(
+                SystemLog::CHANNEL_SALE,
                 "Предмет продан: {$item->getName()}",
                 ['soldPrice' => $data['soldPrice'], 'ticket' => $item->getLoanTicket()?->getTicketNumber()],
                 $item->getId()
@@ -470,7 +464,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
     {
         $errors = [];
 
-        // b) Цена продажи не может быть ниже оценочной
         $soldPrice = (float) ($item->getSoldPrice() ?? 0);
         $estimated = (float) ($item->getEstimatedValue() ?? 0);
         if ($soldPrice > 0 && $estimated > 0 && $soldPrice < $estimated) {
@@ -481,7 +474,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             );
         }
 
-        // c) Общий вес >= вес лома
         $itemWeight = (float) ($item->getItemWeight() ?? 0);
         $scrapWeight = (float) ($item->getScrapWeight() ?? 0);
         if ($scrapWeight > 0 && $itemWeight > 0 && $scrapWeight > $itemWeight) {
@@ -492,7 +484,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             );
         }
 
-        // d) Нельзя перевести в статус "На реализации" без цены продажи и фото
         if ($item->isForSale()) {
             if (empty($item->getSoldPrice()) || (float) $item->getSoldPrice() <= 0) {
                 $errors[] = 'Для перевода на реализацию необходимо установить цену продажи.';
@@ -505,17 +496,12 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             }
         }
 
-        // 9.2) Товар не может быть «на реализации» без цены
-        if ($item->isForSale() && (empty($item->getSoldPrice()) || (float) $item->getSoldPrice() <= 0)) {
-            $errors[] = 'Товар на реализации должен иметь цену продажи.';
-        }
-
-        $this->logger->warning(SystemLog::CHANNEL_SALE,
-            "Ошибка валидации предмета: " . implode('; ', $errors),
-            ['itemId' => $item->getId()]
-        );
-
         if (!empty($errors)) {
+            $this->logger->warning(
+                SystemLog::CHANNEL_SALE,
+                "Ошибка валидации предмета: " . implode('; ', $errors),
+                ['itemId' => $item->getId()]
+            );
             throw new \RuntimeException(implode(' ', $errors));
         }
     }
@@ -595,7 +581,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
     {
         if (!$entity instanceof PledgedItem) return null;
 
-        // e) Запрет удаления, если изделие связано с билетом
         if ($entity->getLoanTicket() !== null) {
             return sprintf(
                 'Невозможно удалить предмет «%s»: он связан с залоговым билетом %s. Используйте архивацию.',

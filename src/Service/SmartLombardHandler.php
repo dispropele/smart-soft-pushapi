@@ -8,7 +8,7 @@ use App\Entity\PledgedItem;
 use App\Entity\PledgedItemImage;
 use App\Entity\Metal;
 use App\Entity\MetalStandard;
-use App\Entity\PushApiLog;
+use App\Entity\SystemLog;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -25,6 +25,7 @@ class SmartLombardHandler
         private HttpClientInterface    $httpClient,
         private KernelInterface        $kernel,
         private LoggerInterface        $logger,
+        private SystemLogger           $systemLogger,
         #[Autowire('%env(SMARTLOMBARD_API_SECRET)%')]
         private string $secret
     ) {
@@ -126,24 +127,20 @@ class SmartLombardHandler
             };
             $item->setStatus($status);
 
-            // Category
             if (!empty($data['category'])) {
                 $item->setCategory($this->findOrCreateCategory($data['category']));
             }
 
-            // Currency
             if (!empty($data['currency'])) {
                 $item->setCurrency($this->findOrCreateCurrency($data['currency']));
             }
 
-            // Metal / standard
             if (!empty($data['metal_name']) && !empty($data['metal_standart_name'])) {
                 $item->setMetalStandard(
                     $this->findOrCreateMetalStandard($data['metal_name'], $data['metal_standart_name'])
                 );
             }
 
-            // Images
             if (array_key_exists('images', $data)) {
                 foreach ($item->getImages() as $old) {
                     $this->entityManager->remove($old);
@@ -173,9 +170,6 @@ class SmartLombardHandler
         }
     }
 
-    /**
-     * Flat category lookup — parent_id was dropped in migration Version20260511094948.
-     */
     private function findOrCreateCategory(string $name): Category
     {
         $cat = $this->entityManager->getRepository(Category::class)->findOneBy(['name' => $name]);
@@ -238,15 +232,19 @@ class SmartLombardHandler
         bool    $process,
         ?string $error = null
     ): void {
-        $log = new PushApiLog();
-        $log->setEntityType($entityType);
-        $log->setEventType($eventType);
-        $log->setEntityId($entityId);
-        $log->setPayload($payload);
-        $log->setAuthStatus($auth);
-        $log->setProcessStatus($process);
-        $log->setErrorMessage($error);
-        $this->entityManager->persist($log);
+        $level   = $process ? SystemLog::LEVEL_INFO : SystemLog::LEVEL_WARNING;
+        $message = sprintf('[%s] %s #%s', $entityType, $eventType, $entityId ?? '?');
+        if ($error) {
+            $message .= ': ' . $error;
+            $level = SystemLog::LEVEL_ERROR;
+        }
+
+        $this->systemLogger->{'info' === $level ? 'info' : ('warning' === $level ? 'warning' : 'error')}(
+            SystemLog::CHANNEL_SYSTEM,
+            $message,
+            ['payload_keys' => array_keys($payload), 'auth' => $auth],
+            $entityId
+        );
     }
 
     /** @deprecated Use writeLog() */

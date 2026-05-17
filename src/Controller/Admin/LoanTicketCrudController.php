@@ -6,6 +6,7 @@ use App\Entity\LoanTicket;
 use App\Entity\PledgedItem;
 use App\Entity\Tariff;
 use App\Service\RepledgeService;
+use App\Service\SystemLogger;
 use App\Entity\SystemLog;
 
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,6 +35,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class LoanTicketCrudController extends AbstractCrudController
 {
+    private SystemLogger $logger;
+
+    public function __construct(SystemLogger $logger)
+    {
+        $this->logger = $logger;
+    }
+
     public static function getEntityFqcn(): string { return LoanTicket::class; }
 
     public function configureCrud(Crud $crud): Crud
@@ -88,7 +96,6 @@ class LoanTicketCrudController extends AbstractCrudController
             ->setFormat('dd.MM.yyyy HH:mm')
             ->setFormTypeOptions(['disabled' => $isEdit]);
 
-        // Индикатор дней (renderAsHtml удален, заменен на корректный вывод Bootstrap 5)
         yield DateTimeField::new('returnDate', 'Срок возврата / Осталось дней')
             ->setFormat('dd.MM.yyyy HH:mm')
             ->formatValue(function ($value, LoanTicket $ticket) {
@@ -118,7 +125,6 @@ class LoanTicketCrudController extends AbstractCrudController
             ->onlyOnDetail()
             ->formatValue(fn ($v) => $v ? number_format((float) $v, 2, '.', ' ') . ' ₽' : '—');
 
-        // Поле статуса (ОБЪЕДИНЕНО, без дублей и renderAsHtml)
         yield ChoiceField::new('status', 'Статус')
             ->hideWhenCreating()
             ->setChoices([
@@ -203,7 +209,6 @@ class LoanTicketCrudController extends AbstractCrudController
                 if ($t->getStatus() === LoanTicket::STATUS_CANCELLED) {
                     return false;
                 }
-                // Аннулирование доступно только в течение 15 минут после создания
                 $createdAt = $t->getCreatedAt();
                 if (!$createdAt) {
                     return false;
@@ -212,7 +217,6 @@ class LoanTicketCrudController extends AbstractCrudController
                 if ($minutesSince > 15) {
                     return false;
                 }
-                // И только если не было оплат
                 $hasPayments = (float) $t->getPaidInterest() > 0 || (float) $t->getPaidPrincipal() > 0;
                 return !$hasPayments;
             });
@@ -250,7 +254,7 @@ class LoanTicketCrudController extends AbstractCrudController
             }
             $entity->setStatus(LoanTicket::STATUS_OPEN);
             $this->applyTariff($entity);
-            
+
             foreach ($entity->getPledgedItems() as $item) {
                 $category = $item->getGoodType()?->getCategory();
                 if ($category !== null) {
@@ -259,20 +263,23 @@ class LoanTicketCrudController extends AbstractCrudController
             }
             $this->handleEmbeddedImageUploads($entity, $em);
         }
-        parent::persistEntity($em, $entity);    
-        
-        $this->logger->info(SystemLog::CHANNEL_TICKET,
-            "Создан залоговый билет: {$entity->getTicketNumber()}",
-            ['loanAmount' => $entity->getLoanAmount(), 'client' => $entity->getClient()->getFullName()],
-            $entity->getId()
-        );
+        parent::persistEntity($em, $entity);
+
+        if ($entity instanceof LoanTicket) {
+            $this->logger->info(
+                SystemLog::CHANNEL_TICKET,
+                "Создан залоговый билет: {$entity->getTicketNumber()}",
+                ['loanAmount' => $entity->getLoanAmount(), 'client' => $entity->getClient()?->getFullName()],
+                $entity->getId()
+            );
+        }
     }
 
     public function updateEntity(EntityManagerInterface $em, $entity): void
     {
         if ($entity instanceof LoanTicket) {
             $this->applyTariff($entity);
-            
+
             foreach ($entity->getPledgedItems() as $item) {
                 $category = $item->getGoodType()?->getCategory();
                 if ($category !== null) {
@@ -320,7 +327,7 @@ class LoanTicketCrudController extends AbstractCrudController
                 $image->setSrc($relPath);
                 $image->setPreview($relPath);
                 $image->setIsCover($item->getImages()->isEmpty() && $idx === 0);
-                
+
                 $em->persist($image);
                 $item->addImage($image);
             }
@@ -343,7 +350,7 @@ class LoanTicketCrudController extends AbstractCrudController
 
     // --- Кастомные экшены ---
 
-    public function repledgeAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em, FormFactoryInterface $formFactory): Response 
+    public function repledgeAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em, FormFactoryInterface $formFactory): Response
     {
         $entityId = (int) $context->getRequest()->query->get('entityId');
         $ticket = $em->find(LoanTicket::class, $entityId);
@@ -353,8 +360,7 @@ class LoanTicketCrudController extends AbstractCrudController
         $allItems = $ticket->getPledgedItems()->toArray();
         $totalLoan = (float) $ticket->getLoanAmount();
         $totalEstimate = array_sum(array_map(fn($i) => (float) $i->getEstimatedValue(), $allItems));
-        
-        // Расчет пропорционального тела займа для каждого изделия
+
         $itemLoans = [];
         foreach ($allItems as $item) {
             $itemLoans[$item->getId()] = $totalEstimate > 0
@@ -373,8 +379,7 @@ class LoanTicketCrudController extends AbstractCrudController
         $form->handleRequest($context->getRequest());
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-            
-            // Собираем ID выкупаемых изделий из чекбоксов
+
             $redeemedItemIds = [];
             foreach ($allItems as $item) {
                 $fieldName = 'redeem_' . $item->getId();
@@ -382,10 +387,9 @@ class LoanTicketCrudController extends AbstractCrudController
                     $redeemedItemIds[] = $item->getId();
                 }
             }
-            
+
             try {
                 if (!empty($redeemedItemIds)) {
-                    // Частичный перезалог с выкупом
                     $result = $service->createRepledgePartial(
                         $ticket,
                         $redeemedItemIds,
@@ -394,7 +398,6 @@ class LoanTicketCrudController extends AbstractCrudController
                         $data['notes'] ?? null
                     );
                 } else {
-                    // Обычный перезалог без выкупа
                     $result = $service->createRepledge(
                         $ticket,
                         (string)$data['paymentAmount'],
@@ -419,7 +422,7 @@ class LoanTicketCrudController extends AbstractCrudController
         ]);
     }
 
-    public function redeemAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response 
+    public function redeemAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
     {
         $ticket = $em->find(LoanTicket::class, (int)$context->getRequest()->query->get('entityId'));
         if (!$ticket) throw $this->createNotFoundException();
@@ -428,12 +431,11 @@ class LoanTicketCrudController extends AbstractCrudController
         return $this->redirect($this->container->get(AdminUrlGenerator::class)->setAction(Action::DETAIL)->setEntityId($ticket->getId())->generateUrl());
     }
 
-    public function moveToSaleAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response 
+    public function moveToSaleAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
     {
         $ticket = $em->find(LoanTicket::class, (int)$context->getRequest()->query->get('entityId'));
         if (!$ticket) throw $this->createNotFoundException();
 
-        // Проверка: текущая дата должна быть > срок возврата + льготный период
         $graceEnd = $ticket->getGraceEndDate();
         if ($graceEnd && (new \DateTime()) <= $graceEnd) {
             $this->addFlash('danger', 'Передача на реализацию возможна только после окончания льготного периода (' . $graceEnd->format('d.m.Y H:i') . ').');
@@ -445,13 +447,12 @@ class LoanTicketCrudController extends AbstractCrudController
         return $this->redirect($this->container->get(AdminUrlGenerator::class)->setAction(Action::DETAIL)->setEntityId($ticket->getId())->generateUrl());
     }
 
-    public function annulAction(AdminContext $context, EntityManagerInterface $em): Response 
+    public function annulAction(AdminContext $context, EntityManagerInterface $em): Response
     {
         $entityId = (int) $context->getRequest()->query->get('entityId');
         $ticket = $em->find(LoanTicket::class, $entityId);
         if (!$ticket) throw $this->createNotFoundException();
 
-        // Проверка ограничений на аннулирование
         $createdAt = $ticket->getCreatedAt();
         if ($createdAt) {
             $minutesSince = ((new \DateTime())->getTimestamp() - $createdAt->getTimestamp()) / 60;
@@ -470,23 +471,24 @@ class LoanTicketCrudController extends AbstractCrudController
         if ($context->getRequest()->query->get('confirmed') === '1') {
             $ticket->setStatus(LoanTicket::STATUS_CANCELLED);
             $ticket->setClosedAt(new \DateTime());
-            
-            // "Освобождаем" предметы залога
+
             foreach ($ticket->getPledgedItems() as $item) {
                 $item->setLoanTicket(null);
                 $item->setStatus(PledgedItem::STATUS_WITHDRAWN);
             }
-            
+
             $em->flush();
+
+            $this->logger->warning(
+                SystemLog::CHANNEL_TICKET,
+                "Билет аннулирован: {$ticket->getTicketNumber()}",
+                ['admin' => $this->getUser()?->getUserIdentifier()],
+                $ticket->getId()
+            );
+
             $this->addFlash('warning', 'Билет аннулирован. Предметы залога освобождены.');
             return $this->redirect($this->container->get(AdminUrlGenerator::class)->setAction(Action::INDEX)->generateUrl());
         }
-
-        $this->logger->warning(SystemLog::CHANNEL_TICKET,
-            "Билет аннулирован: {$ticket->getTicketNumber()}",
-            ['admin' => $this->getUser()->getUserIdentifier()],
-            $ticket->getId()
-        );
 
         return $this->render('admin/confirm_annul.html.twig', [
             'ticket' => $ticket,

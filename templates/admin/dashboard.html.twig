@@ -12,32 +12,41 @@
         </a>
     </div>
 
-    {# 5.4.a. Верхний ряд: 3 карточки-индикатора #}
+    {# 5.4.a. Верхний ряд: 4 карточки-индикатора #}
     <div class="row g-4 mb-4">
-        <!-- Займы в рублях -->
-        <div class="col-md-4">
+        <!-- Займы активные -->
+        <div class="col-md-3">
             <div class="card shadow-sm h-100 border-0">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase fw-bold mb-2">Займы в рублях (Активные)</h6>
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Займы (Активные)</h6>
                     <h3 class="text-dark mb-0 fw-bold">{{ (activeLoansSum)|number_format(2, '.', ' ') }} ₽</h3>
                 </div>
             </div>
         </div>
+        <!-- Льготный период -->
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100 border-0" style="border-left: 4px solid #ffc107 !important;">
+                <div class="card-body">
+                    <h6 class="text-warning text-uppercase fw-bold mb-2" style="color: #ffc107 !important;">Льготный период</h6>
+                    <h3 class="mb-0 fw-bold" style="color: #ffc107;">{{ (graceLoansSum)|number_format(2, '.', ' ') }} ₽</h3>
+                </div>
+            </div>
+        </div>
+        <!-- Просроченные -->
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100 border-0" style="border-left: 4px solid #dc3545 !important;">
+                <div class="card-body">
+                    <h6 class="text-danger text-uppercase fw-bold mb-2" style="color: #dc3545 !important;">Просроченные</h6>
+                    <h3 class="mb-0 fw-bold" style="color: #dc3545;">{{ (expiredLoansSum)|number_format(2, '.', ' ') }} ₽</h3>
+                </div>
+            </div>
+        </div>
         <!-- Изделия на витрине -->
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card shadow-sm h-100 border-0">
                 <div class="card-body">
                     <h6 class="text-muted text-uppercase fw-bold mb-2">Изделия на витрине</h6>
                     <h3 class="text-dark mb-0 fw-bold">{{ (onSaleValue)|number_format(2, '.', ' ') }} ₽</h3>
-                </div>
-            </div>
-        </div>
-        <!-- Просрочка -->
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100 border-0" style="border-left: 4px solid #fd7e14 !important;">
-                <div class="card-body">
-                    <h6 class="text-warning text-uppercase fw-bold mb-2" style="color: #fd7e14 !important;">Просрочка (Льготный период)</h6>
-                    <h3 class="mb-0 fw-bold" style="color: #d946ef;">{{ (graceLoansSum)|number_format(2, '.', ' ') }} ₽</h3>
                 </div>
             </div>
         </div>

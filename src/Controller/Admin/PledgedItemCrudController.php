@@ -184,12 +184,12 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             yield AssociationField::new('insert', 'Вставка')
                 ->autocomplete()
                 ->onlyOnForms();
-            yield NumberField::new('insertWeight', 'Вес вставки (кт/г)')
+            yield NumberField::new('insertWeight', 'Вес вставки (г)')
                 ->setNumDecimals(2)
                 ->onlyOnForms();
             yield TextField::new('insertDescription', 'Описание вставки')
                 ->onlyOnForms();
-            yield TextField::new('size', 'Размер')
+            yield TextField::new('size', 'Размер (см)')
                 ->onlyOnForms();
             yield NumberField::new('scrapWeight', 'Вес лома (г)')
                 ->setNumDecimals(2)
@@ -257,6 +257,9 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             ->autocomplete()
             ->setRequired(true);
 
+        yield TextField::new('size', 'Размер (см)')
+            ->setRequired(false);
+
         yield Field::new('metal', 'Металл')
             ->setFormType(\Symfony\Bridge\Doctrine\Form\Type\EntityType::class)
             ->setFormTypeOptions([
@@ -293,7 +296,7 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
         yield AssociationField::new('insert', 'Вставка')
             ->autocomplete();
 
-        yield NumberField::new('insertWeight', 'Вес вставки (карат)')
+        yield NumberField::new('insertWeight', 'Вес вставки (г)')
             ->setNumDecimals(2)
             ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]]);
 
@@ -449,8 +452,18 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
     public function updateEntity(EntityManagerInterface $em, $entity): void
     {
         if ($entity instanceof PledgedItem) {
+            // Получаем исходное состояние из БД
+            $originalEntity = $em->getUnitOfWork()->getOriginalEntityData($entity);
+            $wasForSale = isset($originalEntity['status']) && $originalEntity['status'] === PledgedItem::STATUS_FOR_SALE;
+            $isNowForSale = $entity->isForSale();
+            
             $this->syncCategoryFromGoodType($entity);
-            $this->validatePledgedItem($entity, false);
+            
+            // Валидация только если происходит переход в статус FOR_SALE
+            if ($isNowForSale && !$wasForSale) {
+                $this->validatePledgedItem($entity, false);
+            }
+            
             $entity->setStatusDate(new \DateTime());
             if ($entity->isForSale() && !$entity->getPublishedAt()) {
                 $entity->setPublishedAt(new \DateTime());

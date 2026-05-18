@@ -83,13 +83,13 @@ class LoanTicketCrudController extends AbstractCrudController
 
         yield AssociationField::new('tariff', 'Тариф')
             ->autocomplete()
-            ->setRequired(false)
+            ->setRequired(true)
             ->setFormTypeOptions(['disabled' => $isEdit])
             ->setQueryBuilder(fn ($qb) => $qb->andWhere('entity.isActive = true'))
             ->formatValue(fn (?Tariff $t) => $t ? (string) $t : '—');
 
         yield IntegerField::new('graceDays', 'Льготный период (дней)')
-            ->setFormTypeOptions(['attr' => ['min' => 0, 'max' => 3650]])
+            ->setFormTypeOptions(['attr' => ['min' => 0, 'max' => 60]])
             ->setHelp('По умолчанию 30 дней');
 
         yield DateTimeField::new('issuedAt', 'Дата выдачи')

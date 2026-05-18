@@ -15,7 +15,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
                 <label class="block text-xs font-bold text-[#1d4e75] mb-1 uppercase tracking-wide">Поиск</label>
-                <input type="text" name="q" value="{{ search }}" placeholder="Название, категория, металл, вставка…"
+                <input type="text" name="q" value="{{ search }}" placeholder="Название изделия…"
                     class="w-full px-3 py-2 border border-[#c8d7e1] rounded-[3px] text-sm focus:outline-none focus:border-[#2d6ca2]">
             </div>
             <div>
@@ -106,7 +106,7 @@
                     {% if item.insert %}
                         <p class="text-xs text-[#7a9fb5] mb-1">Вставка: {{ item.insert.name }}</p>
                     {% endif %}
-                    
+
                     <div class="text-xs text-[#7a9fb5] mb-2 space-y-0.5">
                         {% if item.itemWeight %}<div>Вес: {{ item.itemWeight }} г</div>{% endif %}
                         {% if item.size %}<div>Размер: {{ item.size }}</div>{% endif %}

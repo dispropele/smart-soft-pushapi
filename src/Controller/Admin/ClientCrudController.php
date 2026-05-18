@@ -31,15 +31,15 @@ class ClientCrudController extends AbstractProtectedCrudController
     {
         yield IdField::new('id')->hideOnForm();
         yield TextField::new('fullName', 'ФИО')
-            ->setFormTypeOptions(['attr' => ['maxlength' => 255]]);
+            ->setFormTypeOptions(['attr' => ['maxlength' => 100]]);
         yield TextField::new('passportNumber', 'Номер паспорта')
             ->setFormTypeOptions(array_merge(['required' => true], AdminFormAttributes::passportNumber()));
         yield TextField::new('passportSeries', 'Серия паспорта')
-            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::passportSeries()));
+            ->setFormTypeOptions(array_merge(['required' => true], AdminFormAttributes::passportSeries()));
         yield TextField::new('address', 'Адрес')
-            ->setFormTypeOptions(['attr' => ['maxlength' => 2000], 'required' => false]);
+            ->setFormTypeOptions(['attr' => ['maxlength' => 100], 'required' => true]);
         yield TextField::new('phone', 'Телефон')
-            ->setFormTypeOptions(array_merge(['required' => false], AdminFormAttributes::phoneMask()));
+            ->setFormTypeOptions(array_merge(['required' => true], AdminFormAttributes::phoneMask()));
         yield TextField::new('email', 'Email')
             ->setFormTypeOptions(['attr' => ['maxlength' => 100], 'required' => false]);
         yield DateTimeField::new('createdAt', 'Дата создания')

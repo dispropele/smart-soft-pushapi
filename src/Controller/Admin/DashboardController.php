@@ -42,6 +42,7 @@ class DashboardController extends AbstractDashboardController
         // 1. Индикаторы
         $activeLoansSum = $this->loanTicketRepo->getSumForStatus(LoanTicket::STATUS_OPEN);
         $graceLoansSum = $this->loanTicketRepo->getSumForStatus(LoanTicket::STATUS_GRACE);
+        $expiredLoansSum = $this->loanTicketRepo->getSumForStatus(LoanTicket::STATUS_EXPIRED);
         $onSaleValue = $this->pledgedItemRepo->getSumForStatus(PledgedItem::STATUS_FOR_SALE);
 
         // 2. Последние 5 операций
@@ -125,6 +126,7 @@ class DashboardController extends AbstractDashboardController
         return $this->render('admin/dashboard.html.twig', [
             'activeLoansSum' => $activeLoansSum,
             'graceLoansSum' => $graceLoansSum,
+            'expiredLoansSum' => $expiredLoansSum,
             'onSaleValue' => $onSaleValue,
             'latestOperations' => $latestOps,
             'createTicketUrl' => $createTicketUrl,

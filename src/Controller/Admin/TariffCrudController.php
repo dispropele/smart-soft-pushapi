@@ -21,6 +21,7 @@ class TariffCrudController extends AbstractProtectedCrudController
             ->setEntityLabelInSingular('Тариф')
             ->setEntityLabelInPlural('Тарифы')
             ->setDefaultSort(['name' => 'ASC'])
+            ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
     }
 

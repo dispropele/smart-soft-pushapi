@@ -38,6 +38,7 @@ class AdminCrudController extends AbstractCrudController
             ->setEntityLabelInSingular('Администратор')
             ->setEntityLabelInPlural('Администраторы')
             ->setDefaultSort(['createdAt' => 'DESC'])
+            ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
     }
 

@@ -49,6 +49,10 @@ class LoanTicketCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Залоговый билет')
             ->setEntityLabelInPlural('Залоговые билеты')
+            ->setPageTitle(Crud::PAGE_NEW,    '➕ Создать залоговый билет')
+            ->setPageTitle(Crud::PAGE_EDIT,   '✏️ Редактировать залоговый билет')
+            ->setPageTitle(Crud::PAGE_INDEX,  'Залоговые билеты')
+            ->setPageTitle(Crud::PAGE_DETAIL, 'Залоговый билет')
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
@@ -56,15 +60,14 @@ class LoanTicketCrudController extends AbstractCrudController
 
     public function configureAssets(Assets $assets): Assets
     {
-        return $assets
-            ->addJsFile('assets/js/loan_ticket_form.js');
+        return $assets->addJsFile('assets/js/loan_ticket_form.js');
     }
 
     public function configureFields(string $pageName): iterable
     {
         $isEdit = $pageName === Crud::PAGE_EDIT;
 
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')->setMaxLength(10)->hideOnForm();
 
         yield TextField::new('ticketNumber', 'Номер билета')
             ->setFormTypeOptions(['disabled' => true])
@@ -77,7 +80,7 @@ class LoanTicketCrudController extends AbstractCrudController
             ->setStoredAsCents(false)
             ->setRequired(true)
             ->setFormTypeOptions([
-                'attr' => ['inputmode' => 'decimal', 'min' => '0.01', 'step' => '0.01'],
+                'attr'     => ['inputmode' => 'decimal', 'min' => '0.01', 'step' => '0.01'],
                 'disabled' => $isEdit,
             ]);
 
@@ -100,14 +103,16 @@ class LoanTicketCrudController extends AbstractCrudController
             ->setFormat('dd.MM.yyyy HH:mm')
             ->formatValue(function ($value, LoanTicket $ticket) {
                 $dateStr = $value instanceof \DateTimeInterface ? $value->format('d.m.Y H:i') : '—';
-                if ($ticket->getStatus() === LoanTicket::STATUS_OPEN || $ticket->getStatus() === LoanTicket::STATUS_GRACE) {
+                if (in_array($ticket->getStatus(), [LoanTicket::STATUS_OPEN, LoanTicket::STATUS_GRACE])) {
                     $daysLeft = $ticket->getExactDaysLeft();
                     $class = match (true) {
                         $daysLeft > 10 => 'text-success',
                         $daysLeft >= 1 => 'text-warning',
-                        default => 'text-danger',
+                        default        => 'text-danger',
                     };
-                    $text = $daysLeft >= 0 ? "{$daysLeft} дн." : "Просрочка " . abs($daysLeft) . " дн.";
+                    $text = $daysLeft >= 0
+                        ? "{$daysLeft} дн."
+                        : 'Просрочка ' . abs($daysLeft) . ' дн.';
                     return sprintf('%s <br><span class="fw-bold %s">%s</span>', $dateStr, $class, $text);
                 }
                 return $dateStr;
@@ -206,19 +211,12 @@ class LoanTicketCrudController extends AbstractCrudController
             ->linkToCrudAction('annulAction')
             ->addCssClass('btn btn-outline-danger')
             ->displayIf(function (LoanTicket $t) {
-                if ($t->getStatus() === LoanTicket::STATUS_CANCELLED) {
-                    return false;
-                }
+                if ($t->getStatus() === LoanTicket::STATUS_CANCELLED) return false;
                 $createdAt = $t->getCreatedAt();
-                if (!$createdAt) {
-                    return false;
-                }
+                if (!$createdAt) return false;
                 $minutesSince = ((new \DateTime())->getTimestamp() - $createdAt->getTimestamp()) / 60;
-                if ($minutesSince > 15) {
-                    return false;
-                }
-                $hasPayments = (float) $t->getPaidInterest() > 0 || (float) $t->getPaidPrincipal() > 0;
-                return !$hasPayments;
+                if ($minutesSince > 15) return false;
+                return (float) $t->getPaidInterest() === 0.0 && (float) $t->getPaidPrincipal() === 0.0;
             });
 
         return $actions
@@ -249,6 +247,37 @@ class LoanTicketCrudController extends AbstractCrudController
     public function persistEntity(EntityManagerInterface $em, $entity): void
     {
         if ($entity instanceof LoanTicket) {
+            // ── Валидация: хотя бы один предмет залога ──────────────────────────
+            if ($entity->getPledgedItems()->isEmpty()) {
+                throw new \RuntimeException('Необходимо добавить хотя бы один предмет залога.');
+            }
+
+            // ── Валидация: каждый предмет должен иметь название и оценку ────────
+            foreach ($entity->getPledgedItems() as $idx => $item) {
+                $num = $idx + 1;
+                if (empty(trim($item->getName() ?? ''))) {
+                    throw new \RuntimeException("Предмет №{$num}: необходимо указать название.");
+                }
+                if ((float)($item->getEstimatedValue() ?? 0) <= 0) {
+                    throw new \RuntimeException("Предмет №{$num} ({$item->getName()}): оценочная стоимость должна быть больше 0.");
+                }
+            }
+
+            // ── Валидация: сумма займа не превышает суммарную оценку ─────────────
+            $totalEstimate = 0.0;
+            foreach ($entity->getPledgedItems() as $item) {
+                $totalEstimate += (float) ($item->getEstimatedValue() ?? 0);
+            }
+            $loanAmount = (float) ($entity->getLoanAmount() ?? 0);
+            if ($totalEstimate > 0 && $loanAmount > $totalEstimate) {
+                throw new \RuntimeException(sprintf(
+                    'Сумма займа (%.2f ₽) не может превышать общую оценочную стоимость изделий (%.2f ₽).',
+                    $loanAmount,
+                    $totalEstimate
+                ));
+            }
+
+            // ── Генерация номера и статус ─────────────────────────────────────────
             if (!$entity->getTicketNumber()) {
                 $entity->setTicketNumber($this->generateTicketNumber());
             }
@@ -259,6 +288,10 @@ class LoanTicketCrudController extends AbstractCrudController
                 $category = $item->getGoodType()?->getCategory();
                 if ($category !== null) {
                     $item->setCategory($category);
+                }
+                // Устанавливаем статус для каждого нового предмета
+                if (!$item->getStatus() || $item->getStatus() === '') {
+                    $item->setStatus(PledgedItem::STATUS_PLEDGED);
                 }
             }
             $this->handleEmbeddedImageUploads($entity, $em);
@@ -317,7 +350,7 @@ class LoanTicketCrudController extends AbstractCrudController
             foreach ($itemFiles as $idx => $file) {
                 if (!($file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile)) continue;
 
-                $ext = $file->guessExtension() ?: 'jpg';
+                $ext  = $file->guessExtension() ?: 'jpg';
                 $base = sprintf('pledge_%s_%s.%s', time(), bin2hex(random_bytes(4)), $ext);
                 $file->move($uploadDir, $base);
                 $relPath = '/uploads/sl_images/' . $base;
@@ -348,17 +381,17 @@ class LoanTicketCrudController extends AbstractCrudController
         return 'ЛБ-' . date('Y') . '-' . strtoupper(bin2hex(random_bytes(3)));
     }
 
-    // --- Кастомные экшены ---
+    // ── Кастомные действия ────────────────────────────────────────────────────
 
     public function repledgeAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em, FormFactoryInterface $formFactory): Response
     {
         $entityId = (int) $context->getRequest()->query->get('entityId');
-        $ticket = $em->find(LoanTicket::class, $entityId);
+        $ticket   = $em->find(LoanTicket::class, $entityId);
         if (!$ticket) throw $this->createNotFoundException();
 
-        $accrued = $ticket->getAccruedInterest();
-        $allItems = $ticket->getPledgedItems()->toArray();
-        $totalLoan = (float) $ticket->getLoanAmount();
+        $accrued     = $ticket->getAccruedInterest();
+        $allItems    = $ticket->getPledgedItems()->toArray();
+        $totalLoan   = (float) $ticket->getLoanAmount();
         $totalEstimate = array_sum(array_map(fn($i) => (float) $i->getEstimatedValue(), $allItems));
 
         $itemLoans = [];
@@ -372,7 +405,7 @@ class LoanTicketCrudController extends AbstractCrudController
             'paymentAmount' => $accrued,
             'extensionDays' => 30,
         ], [
-            'loan_ticket' => $ticket,
+            'loan_ticket'      => $ticket,
             'accrued_interest' => $accrued,
         ]);
 
@@ -389,23 +422,10 @@ class LoanTicketCrudController extends AbstractCrudController
             }
 
             try {
-                if (!empty($redeemedItemIds)) {
-                    $result = $service->createRepledgePartial(
-                        $ticket,
-                        $redeemedItemIds,
-                        (string)$data['paymentAmount'],
-                        (int)$data['extensionDays'],
-                        $data['notes'] ?? null
-                    );
-                } else {
-                    $result = $service->createRepledge(
-                        $ticket,
-                        (string)$data['paymentAmount'],
-                        null,
-                        (int)$data['extensionDays'],
-                        $data['notes'] ?? null
-                    );
-                }
+                $result = !empty($redeemedItemIds)
+                    ? $service->createRepledgePartial($ticket, $redeemedItemIds, (string) $data['paymentAmount'], (int) $data['extensionDays'], $data['notes'] ?? null)
+                    : $service->createRepledge($ticket, (string) $data['paymentAmount'], null, (int) $data['extensionDays'], $data['notes'] ?? null);
+
                 $this->addFlash('success', 'Перезалог успешно оформлен.');
                 return $this->redirect($this->container->get(AdminUrlGenerator::class)->setAction(Action::DETAIL)->setEntityId($result->getId())->generateUrl());
             } catch (\Exception $e) {
@@ -414,9 +434,9 @@ class LoanTicketCrudController extends AbstractCrudController
         }
 
         return $this->render('admin/repledge_form.html.twig', [
-            'ticket' => $ticket,
-            'form' => $form->createView(),
-            'accrued' => $accrued,
+            'ticket'    => $ticket,
+            'form'      => $form->createView(),
+            'accrued'   => $accrued,
             'totalDebt' => $ticket->getTotalDebt(),
             'itemLoans' => $itemLoans,
         ]);
@@ -424,7 +444,7 @@ class LoanTicketCrudController extends AbstractCrudController
 
     public function redeemAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
     {
-        $ticket = $em->find(LoanTicket::class, (int)$context->getRequest()->query->get('entityId'));
+        $ticket = $em->find(LoanTicket::class, (int) $context->getRequest()->query->get('entityId'));
         if (!$ticket) throw $this->createNotFoundException();
         $service->redeem($ticket);
         $this->addFlash('success', 'Залог выкуплен.');
@@ -433,7 +453,7 @@ class LoanTicketCrudController extends AbstractCrudController
 
     public function moveToSaleAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
     {
-        $ticket = $em->find(LoanTicket::class, (int)$context->getRequest()->query->get('entityId'));
+        $ticket   = $em->find(LoanTicket::class, (int) $context->getRequest()->query->get('entityId'));
         if (!$ticket) throw $this->createNotFoundException();
 
         $graceEnd = $ticket->getGraceEndDate();
@@ -450,7 +470,7 @@ class LoanTicketCrudController extends AbstractCrudController
     public function annulAction(AdminContext $context, EntityManagerInterface $em): Response
     {
         $entityId = (int) $context->getRequest()->query->get('entityId');
-        $ticket = $em->find(LoanTicket::class, $entityId);
+        $ticket   = $em->find(LoanTicket::class, $entityId);
         if (!$ticket) throw $this->createNotFoundException();
 
         $createdAt = $ticket->getCreatedAt();
@@ -462,8 +482,7 @@ class LoanTicketCrudController extends AbstractCrudController
             }
         }
 
-        $hasPayments = (float) $ticket->getPaidInterest() > 0 || (float) $ticket->getPaidPrincipal() > 0;
-        if ($hasPayments) {
+        if ((float) $ticket->getPaidInterest() > 0 || (float) $ticket->getPaidPrincipal() > 0) {
             $this->addFlash('danger', 'Аннулирование невозможно: по билету уже есть платежи.');
             return $this->redirect($this->container->get(AdminUrlGenerator::class)->setAction(Action::DETAIL)->setEntityId($entityId)->generateUrl());
         }
@@ -491,9 +510,9 @@ class LoanTicketCrudController extends AbstractCrudController
         }
 
         return $this->render('admin/confirm_annul.html.twig', [
-            'ticket' => $ticket,
+            'ticket'     => $ticket,
             'confirmUrl' => $this->container->get(AdminUrlGenerator::class)->setAction('annulAction')->setEntityId($entityId)->set('confirmed', '1')->generateUrl(),
-            'backUrl' => $this->container->get(AdminUrlGenerator::class)->setAction(Action::DETAIL)->setEntityId($entityId)->generateUrl(),
+            'backUrl'    => $this->container->get(AdminUrlGenerator::class)->setAction(Action::DETAIL)->setEntityId($entityId)->generateUrl(),
         ]);
     }
 }

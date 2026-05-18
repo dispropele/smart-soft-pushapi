@@ -24,6 +24,8 @@ class SystemLogCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Запись лога')
             ->setEntityLabelInPlural('Системные логи')
+            ->setPageTitle(Crud::PAGE_INDEX,  'Системные логи')
+            ->setPageTitle(Crud::PAGE_DETAIL, 'Запись лога')
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->setPaginatorPageSize(100)
             ->showEntityActionsInlined();
@@ -38,21 +40,22 @@ class SystemLogCrudController extends AbstractCrudController
 
         yield TextField::new('level', 'Уровень')
             ->formatValue(fn($v) => match($v) {
-                'info'     => '<span class="badge bg-secondary">info</span>',
-                'warning'  => '<span class="badge bg-warning text-dark">warning</span>',
-                'error'    => '<span class="badge bg-danger">error</span>',
-                'critical' => '<span class="badge bg-dark">critical</span>',
-                default    => $v,
+                'info'     => '<span class="badge bg-secondary">Инфо</span>',
+                'warning'  => '<span class="badge bg-warning text-dark">Предупреждение</span>',
+                'error'    => '<span class="badge bg-danger">Ошибка</span>',
+                'critical' => '<span class="badge bg-dark">Критично</span>',
+                default    => '<span class="badge bg-light text-dark">' . htmlspecialchars((string)$v) . '</span>',
             })
             ->renderAsHtml();
 
         yield TextField::new('channel', 'Канал')
             ->formatValue(fn($v) => match($v) {
-                'auth'     => '🔐 auth',
-                'repledge' => '🔄 repledge',
-                'sale'     => '💰 sale',
-                'ticket'   => '🎫 ticket',
-                default    => '⚙️ ' . $v,
+                'auth'     => '🔐 Авторизация',
+                'repledge' => '🔄 Перезалог',
+                'sale'     => '💰 Продажа',
+                'ticket'   => '🎫 Билет',
+                'system'   => '⚙️ Система',
+                default    => '⚙️ ' . htmlspecialchars((string)$v),
             });
 
         yield TextField::new('message', 'Сообщение')->setMaxLength(120);
@@ -80,17 +83,17 @@ class SystemLogCrudController extends AbstractCrudController
     {
         return $filters
             ->add(ChoiceFilter::new('level', 'Уровень')->setChoices([
-                'Info'     => 'info',
-                'Warning'  => 'warning',
-                'Error'    => 'error',
-                'Critical' => 'critical',
+                'Инфо'           => 'info',
+                'Предупреждение' => 'warning',
+                'Ошибка'         => 'error',
+                'Критично'       => 'critical',
             ]))
             ->add(ChoiceFilter::new('channel', 'Канал')->setChoices([
-                'Auth'     => 'auth',
-                'Repledge' => 'repledge',
-                'Sale'     => 'sale',
-                'Ticket'   => 'ticket',
-                'System'   => 'system',
+                'Авторизация' => 'auth',
+                'Перезалог'   => 'repledge',
+                'Продажа'     => 'sale',
+                'Билет'       => 'ticket',
+                'Система'     => 'system',
             ]))
             ->add(DateTimeFilter::new('createdAt', 'Дата'));
     }

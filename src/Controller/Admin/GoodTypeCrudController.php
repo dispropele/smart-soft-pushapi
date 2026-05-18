@@ -25,6 +25,8 @@ class GoodTypeCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Вид изделия')
             ->setEntityLabelInPlural('Виды изделий')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить вид изделия')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать вид изделия')
             ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

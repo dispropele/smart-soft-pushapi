@@ -24,32 +24,14 @@ class UpdateTicketStatusesCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $now = new \DateTime();
+        $result = $this->repledgeService->updateTicketStatuses();
 
-        // 1. open → grace (основной срок истёк)
-        $openExpired = $this->em->createQuery(
-            'SELECT t FROM App\Entity\LoanTicket t
-             WHERE t.status = :open AND t.returnDate < :now'
-        )->setParameter('open', LoanTicket::STATUS_OPEN)
-         ->setParameter('now', $now)
-         ->getResult();
-
-        foreach ($openExpired as $ticket) {
-            $ticket->setStatus(LoanTicket::STATUS_GRACE);
+        foreach ($result['grace'] as $ticket) {
             $output->writeln("[grace]   {$ticket->getTicketNumber()}");
         }
-        $this->em->flush();
 
-        // 2. grace → expired + moveToSale (grace period тоже истёк)
-        $graceTickets = $this->em->createQuery(
-            'SELECT t FROM App\Entity\LoanTicket t WHERE t.status = :grace'
-        )->setParameter('grace', LoanTicket::STATUS_GRACE)->getResult();
-
-        foreach ($graceTickets as $ticket) {
-            if ($ticket->getGraceDaysLeft() <= 0) {
-                $output->writeln("[sale]    {$ticket->getTicketNumber()} → передаётся на реализацию");
-                $this->repledgeService->moveToSale($ticket);
-            }
+        foreach ($result['sale'] as $ticket) {
+            $output->writeln("[sale]    {$ticket->getTicketNumber()} → передаётся на реализацию");
         }
 
         $output->writeln('Готово.');

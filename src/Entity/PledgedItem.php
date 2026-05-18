@@ -6,6 +6,10 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
 use App\Repository\PledgedItemRepository;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: PledgedItemRepository::class)]
 #[ORM\Table(name: 'pledged_items')]
@@ -105,12 +109,97 @@ private Collection $images;
 
 public function __construct()
 {
-$this->images = new ArrayCollection();
-$this->statusDate = new \DateTime();
+    $this->images = new ArrayCollection();
+    $this->statusDate = new \DateTime();
 }
 
 #[ORM\PreUpdate]
 public function onUpdate(): void { $this->statusDate = new \DateTime(); }
+
+#[Assert\Callback]
+public function validatePledgedItem(ExecutionContextInterface $context): void
+{
+    $name = trim((string) $this->getName());
+    if ($name === '') {
+        $context->buildViolation('Укажите название изделия.')
+            ->atPath('name')
+            ->addViolation();
+    }
+
+    $estimated = (float) ($this->getEstimatedValue() ?? 0);
+    if ($estimated <= 0) {
+        $context->buildViolation('Оценочная стоимость должна быть больше 0.')
+            ->atPath('estimatedValue')
+            ->addViolation();
+    }
+
+    $itemWeight  = (float) ($this->getItemWeight() ?? 0);
+    $scrapWeight = (float) ($this->getScrapWeight() ?? 0);
+    if ($itemWeight > 0 && $scrapWeight > 0 && $scrapWeight > $itemWeight) {
+        $context->buildViolation(sprintf(
+            'Вес лома (%.2f г) не может превышать вес изделия (%.2f г).',
+            $scrapWeight, $itemWeight
+        ))
+            ->atPath('scrapWeight')
+            ->addViolation();
+    }
+
+    $insertWeight = (float) ($this->getInsertWeight() ?? 0);
+    if ($itemWeight > 0 && $insertWeight > 0 && $insertWeight > $itemWeight) {
+        $context->buildViolation(sprintf(
+            'Вес вставки (%.2f г) не может превышать вес изделия (%.2f г).',
+            $insertWeight, $itemWeight
+        ))
+            ->atPath('insertWeight')
+            ->addViolation();
+    }
+
+    if (!$this->isForSale()) {
+        return;
+    }
+
+    if (empty($this->getSoldPrice()) || (float) $this->getSoldPrice() <= 0) {
+        $context->buildViolation('Для перевода на реализацию укажите цену продажи.')
+            ->atPath('soldPrice')
+            ->addViolation();
+    }
+
+    $hasUploadedImages = false;
+    $root = $context->getRoot();
+    if ($root instanceof FormInterface && $root->has('imageFiles')) {
+        $files = $root->get('imageFiles')->getData();
+        if (is_array($files)) {
+            foreach ($files as $file) {
+                if ($file instanceof UploadedFile) {
+                    $hasUploadedImages = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if ($this->getImages()->isEmpty() && !$hasUploadedImages) {
+        $context->buildViolation('Для перевода на реализацию загрузите хотя бы одно фото.')
+            ->atPath('imageFiles')
+            ->addViolation();
+    }
+
+    if (empty($this->getCondition())) {
+        $context->buildViolation('Для перевода на реализацию укажите состояние изделия.')
+            ->atPath('condition')
+            ->addViolation();
+    }
+
+    $soldPrice = (float) ($this->getSoldPrice() ?? 0);
+    if ($soldPrice > 0 && $estimated > 0 && $soldPrice < $estimated) {
+        $context->buildViolation(sprintf(
+            'Цена продажи (%.2f ₽) не может быть ниже оценочной стоимости (%.2f ₽).',
+            $soldPrice, $estimated
+        ))
+            ->atPath('soldPrice')
+            ->addViolation();
+    }
+}
 
 public function __toString(): string { return $this->name ?? ''; }
 

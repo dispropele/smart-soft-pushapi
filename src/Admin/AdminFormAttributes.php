@@ -42,10 +42,11 @@ class AdminFormAttributes
     public static function phoneMask(): array
     {
         return ['attr' => [
-            'data-admin-mask' => 'phone',
+            'data-phone-mask' => 'true',
             'placeholder'     => '+7 (999) 999-99-99',
             'inputmode'       => 'tel',
             'maxlength'       => '18',
+            'pattern'         => '^[+]?7[ ]?\\(?[0-9]{3}\\)?[ ]?[0-9]{3}[- ]?[0-9]{2}[- ]?[0-9]{2}$|^89[0-9]{9}$',
         ]];
     }
 }

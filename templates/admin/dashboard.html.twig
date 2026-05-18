@@ -10,6 +10,13 @@
         <a href="{{ createTicketUrl }}" class="btn btn-primary">
             <i class="fa fa-plus me-2"></i>Создать залоговый билет
         </a>
+
+        <form method="post" action="{{ updateStatusesUrl }}" class="m-0">
+            <input type="hidden" name="_token" value="{{ csrf_token('update_ticket_statuses') }}">
+            <button type="submit" class="btn btn-outline-secondary">
+                <i class="fa fa-sync-alt me-2"></i>Обновить статусы билетов
+            </button>
+        </form>
     </div>
 
     {# 5.4.a. Верхний ряд: 4 карточки-индикатора #}

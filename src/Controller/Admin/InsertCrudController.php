@@ -20,6 +20,8 @@ class InsertCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Вставка')
             ->setEntityLabelInPlural('Вставки')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить вставку')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать вставку')
             ->setDefaultSort(['insertType' => 'ASC', 'name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

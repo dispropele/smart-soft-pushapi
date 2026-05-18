@@ -22,6 +22,8 @@ class CityCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Город')
             ->setEntityLabelInPlural('Города')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить город')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать город')
             ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

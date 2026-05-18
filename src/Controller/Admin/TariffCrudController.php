@@ -20,6 +20,8 @@ class TariffCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Тариф')
             ->setEntityLabelInPlural('Тарифы')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить тариф')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать тариф')
             ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

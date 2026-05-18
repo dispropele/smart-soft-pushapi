@@ -7,6 +7,7 @@ use App\Entity\Client;
 use App\Entity\LoanTicket;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -22,9 +23,17 @@ class ClientCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Клиент')
             ->setEntityLabelInPlural('Клиенты')
+            ->setPageTitle(Crud::PAGE_NEW, 'Создать нового клиента')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать клиента')
+            ->setPageTitle(Crud::PAGE_INDEX, 'Клиенты')
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();
+    }
+
+    public function configureAssets(Assets $assets): Assets
+    {
+        return $assets->addJsFile('assets/js/phone_mask.js');
     }
 
     public function configureFields(string $pageName): iterable

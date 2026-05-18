@@ -22,6 +22,8 @@ class MetalCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Металл')
             ->setEntityLabelInPlural('Металлы')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить металл')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать металл')
             ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

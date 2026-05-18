@@ -49,8 +49,8 @@ class LoanTicketCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Залоговый билет')
             ->setEntityLabelInPlural('Залоговые билеты')
-            ->setPageTitle(Crud::PAGE_NEW,    '➕ Создать залоговый билет')
-            ->setPageTitle(Crud::PAGE_EDIT,   '✏️ Редактировать залоговый билет')
+            ->setPageTitle(Crud::PAGE_NEW,    'Создать залоговый билет')
+            ->setPageTitle(Crud::PAGE_EDIT,   'Редактировать залоговый билет')
             ->setPageTitle(Crud::PAGE_INDEX,  'Залоговые билеты')
             ->setPageTitle(Crud::PAGE_DETAIL, 'Залоговый билет')
             ->setDefaultSort(['createdAt' => 'DESC'])
@@ -60,12 +60,20 @@ class LoanTicketCrudController extends AbstractCrudController
 
     public function configureAssets(Assets $assets): Assets
     {
-        return $assets->addJsFile('assets/js/loan_ticket_form.js');
+        return $assets->addJsFile('assets/js/loan_ticket_form.js')
+                     ->addJsFile('assets/js/phone_mask.js');
     }
 
     public function configureFields(string $pageName): iterable
     {
-        $isEdit = $pageName === Crud::PAGE_EDIT;
+        $isEdit   = $pageName === Crud::PAGE_EDIT;
+        $isDetail = $pageName === Crud::PAGE_DETAIL;
+
+        // Получаем экземпляр для условного рендеринга полей в детали
+        $instance = null;
+        if ($isDetail || $isEdit) {
+            $instance = $this->getContext()?->getEntity()?->getInstance();
+        }
 
         yield IdField::new('id')->setMaxLength(10)->hideOnForm();
 
@@ -118,17 +126,23 @@ class LoanTicketCrudController extends AbstractCrudController
                 return $dateStr;
             });
 
-        yield DateTimeField::new('closedAt', 'Дата закрытия')
-            ->setFormat('dd.MM.yyyy HH:mm')
-            ->onlyOnDetail();
+        // Дата закрытия — только если она установлена
+        if (!$isDetail || ($instance instanceof LoanTicket && $instance->getClosedAt() !== null)) {
+            yield DateTimeField::new('closedAt', 'Дата закрытия')
+                ->setFormat('dd.MM.yyyy HH:mm')
+                ->onlyOnDetail();
+        }
 
-        yield TextField::new('returnAmount', 'Сумма к возврату')
+        // Текущая сумма к возврату (заменяет returnAmount и graceReturnAmount)
+        yield TextField::new('totalDebtDisplay', 'Текущая сумма к возврату')
+            ->setVirtual(true)
             ->onlyOnDetail()
-            ->formatValue(fn ($v) => $v ? number_format((float) $v, 2, '.', ' ') . ' ₽' : '—');
-
-        yield TextField::new('graceReturnAmount', 'Сумма с льготным периодом')
-            ->onlyOnDetail()
-            ->formatValue(fn ($v) => $v ? number_format((float) $v, 2, '.', ' ') . ' ₽' : '—');
+            ->formatValue(fn ($v, LoanTicket $ticket) =>
+            $ticket->isActive()
+                ? '<strong style="color:#1d4e75">' . number_format($ticket->getTotalDebt(), 2, '.', ' ') . ' ₽</strong>'
+                : '—'
+            )
+            ->renderAsHtml();
 
         yield ChoiceField::new('status', 'Статус')
             ->hideWhenCreating()
@@ -150,20 +164,29 @@ class LoanTicketCrudController extends AbstractCrudController
                 default                      => $v ?? '—',
             });
 
-        yield AssociationField::new('repledgedFrom', 'Исходный билет')->onlyOnDetail();
-        yield AssociationField::new('repledgedTo', 'Новый билет (перезалог)')->onlyOnDetail();
+        // Связанные билеты — только если они есть
+        if (!$isDetail || ($instance instanceof LoanTicket && $instance->getRepledgedFrom() !== null)) {
+            yield AssociationField::new('repledgedFrom', 'Исходный билет')->onlyOnDetail();
+        }
+        if (!$isDetail || ($instance instanceof LoanTicket && $instance->getRepledgedTo() !== null)) {
+            yield AssociationField::new('repledgedTo', 'Новый билет (перезалог)')->onlyOnDetail();
+        }
 
-        yield MoneyField::new('paidInterest', 'Оплачено процентов')
-            ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
+        // Платежи — только если есть
+        if (!$isDetail || ($instance instanceof LoanTicket && (float) $instance->getPaidInterest() > 0)) {
+            yield MoneyField::new('paidInterest', 'Оплачено процентов')
+                ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
+        }
+        if (!$isDetail || ($instance instanceof LoanTicket && (float) $instance->getPaidPrincipal() > 0)) {
+            yield MoneyField::new('paidPrincipal', 'Оплачено по телу займа')
+                ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
+        }
 
-        yield MoneyField::new('paidPrincipal', 'Оплачено по телу займа')
-            ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnDetail();
-
-        yield NumberField::new('dailyInterestRate', 'Ежедневная ставка (%/день)')
-            ->setNumDecimals(2)->onlyOnDetail();
-
-        yield NumberField::new('interestRate', 'Процент в месяц (%)')
-            ->setNumDecimals(2)->onlyOnDetail();
+        if (!$isDetail || ($instance instanceof LoanTicket && $instance->getDailyInterestRate() !== null)) {
+            yield NumberField::new('dailyInterestRate', 'Ежедневная ставка (%/день)')
+                ->setNumDecimals(4)
+                ->onlyOnDetail();
+        }
 
         if ($pageName === Crud::PAGE_DETAIL) {
             yield Field::new('pledgedItems', 'Предметы залога')
@@ -247,37 +270,6 @@ class LoanTicketCrudController extends AbstractCrudController
     public function persistEntity(EntityManagerInterface $em, $entity): void
     {
         if ($entity instanceof LoanTicket) {
-            // ── Валидация: хотя бы один предмет залога ──────────────────────────
-            if ($entity->getPledgedItems()->isEmpty()) {
-                throw new \RuntimeException('Необходимо добавить хотя бы один предмет залога.');
-            }
-
-            // ── Валидация: каждый предмет должен иметь название и оценку ────────
-            foreach ($entity->getPledgedItems() as $idx => $item) {
-                $num = $idx + 1;
-                if (empty(trim($item->getName() ?? ''))) {
-                    throw new \RuntimeException("Предмет №{$num}: необходимо указать название.");
-                }
-                if ((float)($item->getEstimatedValue() ?? 0) <= 0) {
-                    throw new \RuntimeException("Предмет №{$num} ({$item->getName()}): оценочная стоимость должна быть больше 0.");
-                }
-            }
-
-            // ── Валидация: сумма займа не превышает суммарную оценку ─────────────
-            $totalEstimate = 0.0;
-            foreach ($entity->getPledgedItems() as $item) {
-                $totalEstimate += (float) ($item->getEstimatedValue() ?? 0);
-            }
-            $loanAmount = (float) ($entity->getLoanAmount() ?? 0);
-            if ($totalEstimate > 0 && $loanAmount > $totalEstimate) {
-                throw new \RuntimeException(sprintf(
-                    'Сумма займа (%.2f ₽) не может превышать общую оценочную стоимость изделий (%.2f ₽).',
-                    $loanAmount,
-                    $totalEstimate
-                ));
-            }
-
-            // ── Генерация номера и статус ─────────────────────────────────────────
             if (!$entity->getTicketNumber()) {
                 $entity->setTicketNumber($this->generateTicketNumber());
             }
@@ -289,7 +281,6 @@ class LoanTicketCrudController extends AbstractCrudController
                 if ($category !== null) {
                     $item->setCategory($category);
                 }
-                // Устанавливаем статус для каждого нового предмета
                 if (!$item->getStatus() || $item->getStatus() === '') {
                     $item->setStatus(PledgedItem::STATUS_PLEDGED);
                 }
@@ -356,7 +347,6 @@ class LoanTicketCrudController extends AbstractCrudController
                 $relPath = '/uploads/sl_images/' . $base;
 
                 $image = new \App\Entity\PledgedItemImage();
-                $image->setPledgedItem($item);
                 $image->setSrc($relPath);
                 $image->setPreview($relPath);
                 $image->setIsCover($item->getImages()->isEmpty() && $idx === 0);
@@ -380,8 +370,6 @@ class LoanTicketCrudController extends AbstractCrudController
     {
         return 'ЛБ-' . date('Y') . '-' . strtoupper(bin2hex(random_bytes(3)));
     }
-
-    // ── Кастомные действия ────────────────────────────────────────────────────
 
     public function repledgeAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em, FormFactoryInterface $formFactory): Response
     {
@@ -453,12 +441,34 @@ class LoanTicketCrudController extends AbstractCrudController
 
     public function moveToSaleAction(AdminContext $context, RepledgeService $service, EntityManagerInterface $em): Response
     {
-        $ticket   = $em->find(LoanTicket::class, (int) $context->getRequest()->query->get('entityId'));
+        $ticket = $em->find(LoanTicket::class, (int) $context->getRequest()->query->get('entityId'));
         if (!$ticket) throw $this->createNotFoundException();
 
         $graceEnd = $ticket->getGraceEndDate();
         if ($graceEnd && (new \DateTime()) <= $graceEnd) {
             $this->addFlash('danger', 'Передача на реализацию возможна только после окончания льготного периода (' . $graceEnd->format('d.m.Y H:i') . ').');
+            return $this->redirect($this->container->get(AdminUrlGenerator::class)->setAction(Action::DETAIL)->setEntityId($ticket->getId())->generateUrl());
+        }
+
+        // Validate that all items have required fields for sale
+        $errors = [];
+        foreach ($ticket->getPledgedItems() as $idx => $item) {
+            $num = $idx + 1;
+            if (empty($item->getSoldPrice()) || (float) $item->getSoldPrice() <= 0) {
+                $errors[] = "Предмет №{$num} ({$item->getName()}): укажите цену продажи.";
+            }
+            if ($item->getImages()->isEmpty()) {
+                $errors[] = "Предмет №{$num} ({$item->getName()}): загрузите хотя бы одно фото.";
+            }
+            if (empty($item->getCondition())) {
+                $errors[] = "Предмет №{$num} ({$item->getName()}): укажите состояние изделия.";
+            }
+        }
+
+        if (!empty($errors)) {
+            foreach ($errors as $error) {
+                $this->addFlash('danger', $error);
+            }
             return $this->redirect($this->container->get(AdminUrlGenerator::class)->setAction(Action::DETAIL)->setEntityId($ticket->getId())->generateUrl());
         }
 

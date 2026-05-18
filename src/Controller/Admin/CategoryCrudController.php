@@ -24,6 +24,8 @@ class CategoryCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Категория')
             ->setEntityLabelInPlural('Категории')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить категорию')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать категорию')
             ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

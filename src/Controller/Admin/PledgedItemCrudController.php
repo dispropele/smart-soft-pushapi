@@ -56,8 +56,8 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             ->setEntityLabelInSingular('Предмет залога')
             ->setEntityLabelInPlural('Предметы (все)')
             ->setPageTitle(Crud::PAGE_INDEX,  'Предметы залога / Витрина')
-            ->setPageTitle(Crud::PAGE_NEW,    '➕ Добавить предмет залога')
-            ->setPageTitle(Crud::PAGE_EDIT,   '✏️ Редактировать предмет')
+            ->setPageTitle(Crud::PAGE_NEW,    'Добавить предмет залога')
+            ->setPageTitle(Crud::PAGE_EDIT,   'Редактировать предмет залога')
             ->setPageTitle(Crud::PAGE_DETAIL, 'Предмет залога')
             ->setDefaultSort(['statusDate' => 'DESC'])
             ->setPaginatorPageSize(50)
@@ -171,7 +171,10 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
         if (!$isCreate) {
             yield AssociationField::new('metalColor', 'Цвет металла')->autocomplete()->onlyOnForms();
             yield AssociationField::new('insert', 'Вставка')->autocomplete()->onlyOnForms();
-            yield NumberField::new('insertWeight', 'Вес вставки (г)')->setNumDecimals(2)->onlyOnForms();
+            yield NumberField::new('insertWeight', 'Вес вставки (г)')
+                ->setNumDecimals(2)
+                ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]])
+                ->onlyOnForms();
             yield TextField::new('insertDescription', 'Описание вставки')->onlyOnForms();
             yield TextField::new('size', 'Размер (см)')->onlyOnForms();
             yield NumberField::new('scrapWeight', 'Вес лома (г)')
@@ -181,7 +184,7 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             yield MoneyField::new('redemptionAmount', 'Сумма выкупа')
                 ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnForms()
                 ->setFormTypeOptions(['disabled' => true]);
-            yield MoneyField::new('soldPrice', 'Цена продажи')
+            yield MoneyField::new('soldPrice', 'Цена для продажи')
                 ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnForms();
             yield TextField::new('condition', 'Состояние')->onlyOnForms();
             yield DateTimeField::new('publishedAt', 'Дата публикации')
@@ -190,7 +193,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
                 ->setFormat('dd.MM.yyyy HH:mm')->onlyOnForms()
                 ->setFormTypeOptions(['disabled' => true]);
 
-            // Фото всегда доступно для редактирования
             if ($isEdit) {
                 yield Field::new('imageFiles', 'Загрузить фото')
                     ->setFormType(FileType::class)
@@ -200,7 +202,7 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
                         'mapped'   => false,
                         'attr'     => ['accept' => 'image/*'],
                     ])
-                    ->setHelp('Загрузите фото. Для перевода на реализацию требуется минимум одно фото.');
+                    ->setHelp('Первое фото станет обложкой. Для перевода на реализацию требуется минимум одно фото.');
             }
         }
 
@@ -327,7 +329,18 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-            $item->setSoldPrice((string) $data['soldPrice']);
+
+            $soldPrice = (float) $data['soldPrice'];
+            $estimated = (float) ($item->getEstimatedValue() ?? 0);
+            if ($estimated > 0 && $soldPrice < $estimated) {
+                $this->addFlash('danger', sprintf(
+                    'Цена продажи (%.2f ₽) не может быть ниже оценочной стоимости (%.2f ₽).',
+                    $soldPrice, $estimated
+                ));
+                return $this->render('admin/sell_item_form.html.twig', ['item' => $item, 'form' => $form->createView()]);
+            }
+
+            $item->setSoldPrice((string) $soldPrice);
             $item->setStatus(PledgedItem::STATUS_SOLD);
             $item->setStatusDate(new \DateTime());
             if ($data['notes']) {
@@ -335,7 +348,7 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             }
             $em->flush();
 
-            $this->addFlash('success', sprintf('Предмет «%s» продан за %s ₽.', $item->getName(), number_format((float) $data['soldPrice'], 2, '.', ' ')));
+            $this->addFlash('success', sprintf('Предмет «%s» продан за %s ₽.', $item->getName(), number_format($soldPrice, 2, '.', ' ')));
             $this->logger->info(SystemLog::CHANNEL_SALE, "Предмет продан: {$item->getName()}", ['soldPrice' => $data['soldPrice']], $item->getId());
 
             return $this->redirect(
@@ -350,7 +363,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
     {
         if ($entity instanceof PledgedItem) {
             $this->syncCategoryFromGoodType($entity);
-            $this->validatePledgedItem($entity, true, false);
             $entity->setStatusDate(new \DateTime());
             if ($entity->isForSale() && !$entity->getPublishedAt()) {
                 $entity->setPublishedAt(new \DateTime());
@@ -362,85 +374,30 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
 
     public function updateEntity(EntityManagerInterface $em, $entity): void
     {
-        if ($entity instanceof PledgedItem) {
-            $originalEntity = $em->getUnitOfWork()->getOriginalEntityData($entity);
-            $wasForSale = isset($originalEntity['status']) && $originalEntity['status'] === PledgedItem::STATUS_FOR_SALE;
-            $isNowForSale = $entity->isForSale();
-
-            $this->syncCategoryFromGoodType($entity);
-
-            // Проверяем, загружаются ли файлы сейчас (до валидации)
-            $request = $this->requestStack->getCurrentRequest();
-            $files = $request?->files->get('PledgedItem');
-            $hasUploadingFiles = !empty($files['imageFiles']);
-
-            // Валидация только при переходе в статус FOR_SALE
-            if ($isNowForSale && !$wasForSale) {
-                $this->validatePledgedItem($entity, false, $hasUploadingFiles);
-            }
-
-            $entity->setStatusDate(new \DateTime());
-            if ($entity->isForSale() && !$entity->getPublishedAt()) {
-                $entity->setPublishedAt(new \DateTime());
-            }
-
-            // Сначала загружаем фото, потом проверяем итоговый статус
-            $this->handleImageUpload($entity, $em);
+        if (!$entity instanceof PledgedItem) {
+            parent::updateEntity($em, $entity);
+            return;
         }
+
+        $originalData  = $em->getUnitOfWork()->getOriginalEntityData($entity);
+        $originalStatus = $originalData['status'] ?? PledgedItem::STATUS_PLEDGED;
+        $wasForSale     = $originalStatus === PledgedItem::STATUS_FOR_SALE;
+        $isNowForSale   = $entity->isForSale();
+
+        $this->syncCategoryFromGoodType($entity);
+        $addedImages = $this->handleImageUpload($entity, $em);
+
+        $entity->setStatusDate(new \DateTime());
+        if ($entity->isForSale() && !$entity->getPublishedAt()) {
+            $entity->setPublishedAt(new \DateTime());
+        }
+
         parent::updateEntity($em, $entity);
     }
 
     /**
-     * Валидация предмета перед сохранением.
-     *
-     * @param bool $isNew             true — создание, false — редактирование
-     * @param bool $hasUploadingFiles true — в запросе есть файлы для загрузки
+     * Проверяет вес лома и вес вставки против веса изделия.
      */
-    private function validatePledgedItem(PledgedItem $item, bool $isNew, bool $hasUploadingFiles): void
-    {
-        $errors = [];
-
-        $soldPrice = (float) ($item->getSoldPrice() ?? 0);
-        $estimated = (float) ($item->getEstimatedValue() ?? 0);
-        if ($soldPrice > 0 && $estimated > 0 && $soldPrice < $estimated) {
-            $errors[] = sprintf(
-                'Цена продажи (%.2f ₽) не может быть ниже оценочной стоимости (%.2f ₽).',
-                $soldPrice, $estimated
-            );
-        }
-
-        $itemWeight  = (float) ($item->getItemWeight() ?? 0);
-        $scrapWeight = (float) ($item->getScrapWeight() ?? 0);
-        if ($scrapWeight > 0 && $itemWeight > 0 && $scrapWeight > $itemWeight) {
-            $errors[] = sprintf(
-                'Вес лома (%.2f г) не может превышать общий вес изделия (%.2f г).',
-                $scrapWeight, $itemWeight
-            );
-        }
-
-        if ($item->isForSale()) {
-            if (empty($item->getSoldPrice()) || (float) $item->getSoldPrice() <= 0) {
-                $errors[] = 'Для перевода на реализацию необходимо установить цену продажи.';
-            }
-            // Фото: считаем допустимым, если файлы загружаются прямо сейчас
-            if ($item->getImages()->isEmpty() && !$hasUploadingFiles) {
-                $errors[] = 'Для перевода на реализацию необходимо загрузить хотя бы одно фото.';
-            }
-            if (empty($item->getCondition())) {
-                $errors[] = 'Для перевода на реализацию необходимо указать состояние изделия.';
-            }
-        }
-
-        if (!empty($errors)) {
-            $this->logger->warning(
-                SystemLog::CHANNEL_SALE,
-                'Ошибка валидации предмета: ' . implode('; ', $errors),
-                ['itemId' => $item->getId()]
-            );
-            throw new \RuntimeException(implode(' ', $errors));
-        }
-    }
-
     private function syncCategoryFromGoodType(PledgedItem $item): void
     {
         $category = $item->getGoodType()?->getCategory();
@@ -449,19 +406,27 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
         }
     }
 
-    private function handleImageUpload(PledgedItem $entity, EntityManagerInterface $em): void
+    /**
+     * Загружает файлы фото, добавляет в коллекцию entity и возвращает список добавленных изображений.
+     * @return PledgedItemImage[]
+     */
+    private function handleImageUpload(PledgedItem $entity, EntityManagerInterface $em): array
     {
+        $addedImages = [];
         $request = $this->requestStack->getCurrentRequest();
-        if (!$request) return;
+        if (!$request) return $addedImages;
 
+        // EasyAdmin использует имя класса как имя формы
         $files = $request->files->get('PledgedItem');
-        if (!is_array($files) || empty($files['imageFiles'])) return;
+        if (!is_array($files) || empty($files['imageFiles'])) return $addedImages;
 
         $fs        = new Filesystem();
         $uploadDir = $this->kernel->getProjectDir() . '/public/uploads/sl_images';
         if (!$fs->exists($uploadDir)) {
             $fs->mkdir($uploadDir, 0755);
         }
+
+        $isFirstImage = $entity->getImages()->isEmpty();
 
         foreach ($files['imageFiles'] as $idx => $file) {
             if (!($file instanceof UploadedFile)) continue;
@@ -472,12 +437,17 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             $relPath = '/uploads/sl_images/' . $base;
 
             $image = new PledgedItemImage();
-            $image->setPledgedItem($entity);
             $image->setSrc($relPath);
             $image->setPreview($relPath);
-            $image->setIsCover($idx === 0 && $entity->getImages()->isEmpty());
+            $image->setIsCover($isFirstImage && $idx === 0);
+
             $em->persist($image);
+            // ВАЖНО: добавляем в коллекцию entity, чтобы валидация видела новые фото
+            $entity->addImage($image);
+            $addedImages[] = $image;
         }
+
+        return $addedImages;
     }
 
     public function configureFilters(Filters $filters): Filters

@@ -87,6 +87,7 @@ class LoanTicket
     private ?\DateTimeImmutable $updatedAt = null;
 
     #[ORM\OneToMany(mappedBy: 'loanTicket', targetEntity: PledgedItem::class, cascade: ['persist'])]
+    #[Assert\Valid]
     private Collection $pledgedItems;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2, options: ['default' => '0'])]
@@ -146,6 +147,11 @@ class LoanTicket
     public function getTotalDebt(?\DateTimeInterface $atDate = null): float
     {
         return round((float) ($this->loanAmount ?? 0) + $this->getAccruedInterest($atDate), 2);
+    }
+
+    public function getTotalDebtDisplay(): string
+    {
+        return number_format($this->getTotalDebt(), 2, '.', ' ');
     }
 
     /** Точных дней до конца основного срока (отрицательное = просрочен) */
@@ -232,6 +238,37 @@ class LoanTicket
             $context->buildViolation(
                 sprintf('Сумма займа (%.2f ₽) не может превышать общую оценочную стоимость изделий (%.2f ₽).', $loanAmount, $totalEstimate)
             )->atPath('loanAmount')->addViolation();
+        }
+    }
+
+    #[Assert\Callback]
+    public function validatePledgedItems(ExecutionContextInterface $context): void
+    {
+        if ($this->pledgedItems->isEmpty()) {
+            $context->buildViolation('Необходимо добавить хотя бы один предмет залога.')
+                ->atPath('pledgedItems')
+                ->addViolation();
+            return;
+        }
+
+        foreach ($this->pledgedItems as $idx => $item) {
+            $num = $idx + 1;
+            $itemName = $item->getName() ?: 'без названия';
+            if (trim((string) $item->getName()) === '') {
+                $context->buildViolation(sprintf('Предмет №%d: необходимо указать название.', $num))
+                    ->atPath('pledgedItems')
+                    ->addViolation();
+            }
+
+            $estimated = (float) ($item->getEstimatedValue() ?? 0);
+            if ($estimated <= 0) {
+                $context->buildViolation(sprintf(
+                    'Предмет №%d (%s): оценочная стоимость должна быть больше 0.',
+                    $num, $itemName
+                ))
+                    ->atPath('pledgedItems')
+                    ->addViolation();
+            }
         }
     }
 

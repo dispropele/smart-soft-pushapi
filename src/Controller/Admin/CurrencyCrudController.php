@@ -22,6 +22,8 @@ class CurrencyCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Валюта')
             ->setEntityLabelInPlural('Валюты')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить валюту')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать валюту')
             ->setDefaultSort(['currency' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

@@ -36,7 +36,7 @@ class Client
     private ?string $address = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Assert\Regex(pattern: '/^(\d{10,11})?$/', message: 'Телефон: 10–11 цифр (без + и скобок).')]
+    #[Assert\Regex(pattern: '/^([+]?7[ ]?[(]?[0-9]{3}[)]?[ ]?[0-9]{3}[- ]?[0-9]{2}[- ]?[0-9]{2}|89[0-9]{9})$/', message: 'Телефон должен быть в формате +7 (999) 999-99-99 или 89999999999.')]
     private ?string $phone = null;
 
     #[ORM\Column(length: 100, nullable: true)]

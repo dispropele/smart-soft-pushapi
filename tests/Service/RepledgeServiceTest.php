@@ -6,6 +6,7 @@ use App\Entity\Client;
 use App\Entity\LoanTicket;
 use App\Entity\PledgedItem;
 use App\Service\RepledgeService;
+use App\Service\SystemLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -15,13 +16,15 @@ use PHPUnit\Framework\TestCase;
 class RepledgeServiceTest extends TestCase
 {
     private EntityManagerInterface $em;
+    private SystemLogger $logger;
     private RepledgeService $service;
 
     protected function setUp(): void
     {
         $this->em = $this->createMock(EntityManagerInterface::class);
+        $this->logger = $this->createMock(SystemLogger::class);
 
-        $this->service = new RepledgeService($this->em);
+        $this->service = new RepledgeService($this->em, $this->logger);
     }
 
     private function makeTicket(

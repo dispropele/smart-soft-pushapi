@@ -286,6 +286,41 @@ class RepledgeService
         }
     }
 
+    public function updateTicketStatuses(): array
+    {
+        $now = new \DateTime();
+        $result = ['grace' => [], 'sale' => []];
+
+        $openExpired = $this->em->createQuery(
+            'SELECT t FROM App\\Entity\\LoanTicket t
+             WHERE t.status = :open AND t.returnDate < :now'
+        )->setParameter('open', LoanTicket::STATUS_OPEN)
+         ->setParameter('now', $now)
+         ->getResult();
+
+        foreach ($openExpired as $ticket) {
+            $ticket->setStatus(LoanTicket::STATUS_GRACE);
+            $result['grace'][] = $ticket;
+        }
+
+        if (!empty($result['grace'])) {
+            $this->em->flush();
+        }
+
+        $graceTickets = $this->em->createQuery(
+            'SELECT t FROM App\\Entity\\LoanTicket t WHERE t.status = :grace'
+        )->setParameter('grace', LoanTicket::STATUS_GRACE)->getResult();
+
+        foreach ($graceTickets as $ticket) {
+            if ($ticket->getGraceDaysLeft() <= 0) {
+                $this->moveToSale($ticket);
+                $result['sale'][] = $ticket;
+            }
+        }
+
+        return $result;
+    }
+
     private function calculateRedemptionAmount(LoanTicket $ticket, PledgedItem $item): ?string
     {
         $totalLoan     = (float) ($ticket->getLoanAmount() ?? 0);

@@ -22,10 +22,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use App\Repository\LoanTicketRepository;
 use App\Repository\PledgedItemRepository;
+use App\Service\RepledgeService;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
@@ -33,7 +36,8 @@ class DashboardController extends AbstractDashboardController
     public function __construct(
         private readonly LoanTicketRepository $loanTicketRepo,
         private readonly PledgedItemRepository $pledgedItemRepo,
-        private readonly AdminUrlGenerator $adminUrlGenerator
+        private readonly AdminUrlGenerator $adminUrlGenerator,
+        private readonly RepledgeService $repledgeService
     ) {
     }
 
@@ -123,6 +127,8 @@ class DashboardController extends AbstractDashboardController
             ->setAction(Action::NEW)
             ->generateUrl();
 
+        $updateStatusesUrl = $this->generateUrl('admin_update_ticket_statuses');
+
         return $this->render('admin/dashboard.html.twig', [
             'activeLoansSum' => $activeLoansSum,
             'graceLoansSum' => $graceLoansSum,
@@ -130,8 +136,24 @@ class DashboardController extends AbstractDashboardController
             'onSaleValue' => $onSaleValue,
             'latestOperations' => $latestOps,
             'createTicketUrl' => $createTicketUrl,
+            'updateStatusesUrl' => $updateStatusesUrl,
             'cashflowData' => $cashflowData,
         ]);
+    }
+
+    #[Route('/admin/update-ticket-statuses', name: 'admin_update_ticket_statuses', methods: ['POST'])]
+    public function updateTicketStatuses(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('update_ticket_statuses', $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Неверный CSRF-токен. Попробуйте снова.');
+            return $this->redirectToRoute('admin');
+        }
+
+        $result = $this->repledgeService->updateTicketStatuses();
+        $updatedCount = count($result['grace']) + count($result['sale']);
+
+        $this->addFlash('success', sprintf('Обновлено %d билетов статусов.', $updatedCount));
+        return $this->redirectToRoute('admin');
     }
 
     /** Получить даты последних 7 дней */

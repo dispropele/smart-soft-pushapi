@@ -37,6 +37,8 @@ class AdminCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Администратор')
             ->setEntityLabelInPlural('Администраторы')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить администратора')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать администратора')
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

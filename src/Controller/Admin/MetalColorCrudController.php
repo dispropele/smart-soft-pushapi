@@ -24,6 +24,8 @@ class MetalColorCrudController extends AbstractProtectedCrudController
         return $crud
             ->setEntityLabelInSingular('Цвет металла')
             ->setEntityLabelInPlural('Цвета металлов')
+            ->setPageTitle(Crud::PAGE_NEW, 'Добавить цвет металла')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Редактировать цвет металла')
             ->setDefaultSort(['name' => 'ASC'])
             ->setPaginatorPageSize(50)
             ->showEntityActionsInlined();

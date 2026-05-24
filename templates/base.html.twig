@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Аурум Ломбард{% endblock %}</title>
+    <title>{% block title %}Ломбард{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     {{ importmap() }}
 </head>
@@ -15,8 +15,7 @@
             
             {# Логотип #}
             <a href="{{ path('app_catalog') }}" class="flex items-baseline gap-2 shrink-0">
-                <span class="text-2xl font-bold text-white tracking-tight">АУРУМ</span>
-                <span class="text-xs text-[#e1f0f5] font-medium uppercase tracking-wider">ломбард</span>
+                <span class="text-2xl font-bold text-white tracking-tight">ЛОМБАРД</span>
             </a>
 
             {# Поиск #}
@@ -63,7 +62,7 @@
     {# Футер #}
     <footer class="mt-auto py-6 bg-[#e1f0f5] border-t border-[#dce8f0] text-center text-sm text-[#7a9fb5]">
         <div class="max-w-[1400px] mx-auto px-4">
-            <p>© {{ "now"|date("Y") }} АУРУМ Ломбард. Все права защищены.</p>
+            <p>© {{ "now"|date("Y") }} Ломбард. Все права защищены.</p>
         </div>
     </footer>
 

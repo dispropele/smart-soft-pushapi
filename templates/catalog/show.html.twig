@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ item.name }} — Аурум Ломбард{% endblock %}
+{% block title %}{{ item.name }} — Ломбард{% endblock %}
 
 {% block body %}
 <nav class="text-xs text-[#7a9fb5] mb-6 flex items-center gap-2 flex-wrap">
@@ -57,7 +57,6 @@
             {% else %}
                 <div class="text-2xl font-bold text-[#333] mb-2">Цена по запросу</div>
             {% endif %}
-            <p class="text-sm text-[#7a9fb5]">Наличие и условия покупки уточняйте по телефону ломбарда.</p>
             <a href="{{ path('app_item_purchase_request', {id: item.id}) }}" class="inline-flex items-center justify-center mt-4 w-full rounded-[3px] bg-[#2d6ca2] text-white font-bold py-3 text-sm hover:bg-[#244f7b] transition">
                 Оставить заявку на покупку
             </a>

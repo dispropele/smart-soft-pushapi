@@ -13,10 +13,10 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class ClientAuthController extends AbstractController
 {
-    #[Route('/login', name: 'app_client_login', methods: ['GET', 'POST'])]
     private const MAX_LOGIN_ATTEMPTS = 5;
     private const LOCKOUT_SECONDS = 300;
 
+    #[Route('/login', name: 'app_client_login', methods: ['GET', 'POST'])]
     public function login(
         Request $request,
         SessionInterface $session,

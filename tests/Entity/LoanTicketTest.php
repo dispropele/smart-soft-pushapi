@@ -16,14 +16,16 @@ class LoanTicketTest extends TestCase
     private function makeTicket(
         float $amount = 10000.0,
         float $dailyRate = 0.3,
-        int   $daysAgo = 30
+        int   $daysAgo = 30,
+        int   $termDays = 1
     ): LoanTicket {
         $ticket = new LoanTicket();
+        $issuedAt = (new \DateTime())->modify("-{$daysAgo} days");
         $ticket->setLoanAmount((string) $amount);
         $ticket->setDailyInterestRate((string) $dailyRate);
         $ticket->setInterestRate((string) round($dailyRate * 30, 2));
-        $ticket->setIssuedAt((new \DateTime())->modify("-{$daysAgo} days"));
-        $ticket->setReturnDate((new \DateTime())->modify('+1 day'));
+        $ticket->setIssuedAt($issuedAt);
+        $ticket->setReturnDate((clone $issuedAt)->modify("+{$termDays} days"));
         $ticket->setStatus(LoanTicket::STATUS_OPEN);
         return $ticket;
     }
@@ -69,15 +71,15 @@ class LoanTicketTest extends TestCase
 
     public function testGetReturnAmount(): void
     {
-        $ticket = $this->makeTicket(amount: 10000.0, dailyRate: 0.3);
-        // Месячная ставка = 0.3 * 30 = 9%
+        $ticket = $this->makeTicket(amount: 10000.0, dailyRate: 0.3, daysAgo: 30, termDays: 30);
+        // 30 дней по ставке 0.3% в день = 9%
         // returnAmount = 10000 * (1 + 9/100) = 10900
         $this->assertEqualsWithDelta(10900.0, (float) $ticket->getReturnAmount(), 0.01);
     }
 
     public function testGetReturnAmountWithZeroRate(): void
     {
-        $ticket = $this->makeTicket(amount: 5000.0, dailyRate: 0.0);
+        $ticket = $this->makeTicket(amount: 5000.0, dailyRate: 0.0, daysAgo: 30, termDays: 30);
         $this->assertEqualsWithDelta(5000.0, (float) $ticket->getReturnAmount(), 0.01);
     }
 

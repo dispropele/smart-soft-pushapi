@@ -1,0 +1,29 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Одобрение заявки{% endblock %}
+
+{% block main %}
+<div style="max-width:560px">
+    <div style="background:#eef7f1;border:1px solid #c3e6cb;border-radius:4px;padding:1rem;margin-bottom:1.5rem">
+        <strong>Заявка на предмет:</strong> {{ saleRequest.pledgedItem.name }}<br>
+        <strong>ФИО:</strong> {{ saleRequest.fullName }}<br>
+        <strong>Телефон:</strong> {{ saleRequest.phone }}<br>
+        <strong>Текущая цена:</strong>
+        {% if saleRequest.pledgedItem.displayPrice is not null %}
+            {{ saleRequest.pledgedItem.displayPrice|number_format(0, '.', ' ') }} ₽
+        {% else %}
+            Цена по запросу
+        {% endif %}
+    </div>
+    <p style="color:#555;margin-bottom:1rem">
+        Укажите цену продажи и подтвердите заявку. После одобрения заявка перейдёт в статус «Продан» и товар будет отмечен проданным.
+    </p>
+    {{ form_start(form) }}
+    {{ form_row(form.soldPrice) }}
+    {{ form_row(form.notes) }}
+    <button type="submit" class="btn btn-success btn-lg">Одобрить заявку</button>
+    <a href="{{ ea_url().setController('App\\Controller\\Admin\\SaleRequestCrudController').setAction('detail').setEntityId(saleRequest.id) }}"
+       class="btn btn-secondary btn-lg ms-2">Отмена</a>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

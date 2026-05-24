@@ -154,7 +154,7 @@ public function validatePledgedItem(ExecutionContextInterface $context): void
             ->addViolation();
     }
 
-    if (!$this->isForSale()) {
+    if (!$this->isForSale() && !$this->isSold() && empty($this->getSoldPrice())) {
         return;
     }
 

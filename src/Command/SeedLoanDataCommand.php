@@ -4,7 +4,7 @@ namespace App\Command;
 
 use App\Entity\Client;
 use App\Entity\LoanTicket;
-use App\Entity\LoanedItem;
+use App\Entity\PledgedItem;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -56,11 +56,9 @@ class SeedLoanDataCommand extends Command
         ];
 
         for ($i = 0; $i < 3; $i++) {
-            $item = new LoanedItem();
+            $item = new PledgedItem();
             $item->setName(['Кольцо золотое', 'Браслет серебряный', 'Цепочка платиновая'][$i]);
             $item->setDescription('Украшение в хорошем состоянии');
-            $item->setJewelryType(['Кольцо', 'Браслет', 'Цепочка'][$i]);
-            $item->setWeight((string)(5 + $i * 2));
             $item->setEstimatedValue((string)(15000 + $i * 10000));
             $item->setCondition('Хорошее');
             $item->setLoanTicket($ticket);

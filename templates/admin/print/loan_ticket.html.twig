@@ -67,6 +67,10 @@
       <td><strong>{{ ticket.loanAmount|number_format(2, '.', ' ') }} руб.</strong></td>
     </tr>
     <tr>
+      <td class="label">Тариф</td>
+      <td>{{ ticket.tariff ? ticket.tariff.name : '—' }}</td>
+    </tr>
+    <tr>
       <td class="label">Ставка (в мес.)</td>
       <td>{{ ticket.interestRate ?? '—' }}%</td>
     </tr>
@@ -89,7 +93,7 @@
       <td>{{ ticket.graceDays }} дней (до {{ ticket.graceEndDate|date('d.m.Y') }})</td>
     </tr>
     <tr>
-      <td class="label">Сумма к возврату</td>
+      <td class="label">Сумма к возврату к {{ ticket.returnDate|date('d.m.Y') }}</td>
       <td><strong>{{ ticket.returnAmount|number_format(2, '.', ' ') }} руб.</strong></td>
     </tr>
   </table>

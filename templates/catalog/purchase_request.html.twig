@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Заявка на покупку изделия — {{ item.name }}{% endblock %}
+
+{% block body %}
+<div class="space-y-6 max-w-3xl mx-auto py-8">
+    <div class="bg-white rounded-[3px] shadow-sm border border-[#c8d7e1] p-6">
+        <a href="{{ path('app_item_show', {id: item.id}) }}" class="text-[#2d6ca2] hover:underline text-sm">← Вернуться к товару</a>
+        <h1 class="text-2xl font-bold text-[#1d4e75] mt-4">Заявка на покупку изделия</h1>
+        <p class="text-sm text-[#7a9fb5] mt-2">Товар: <strong>{{ item.name }}</strong></p>
+        <p class="text-sm text-[#7a9fb5]">Цена: <strong>{{ item.displayPrice ? item.displayPrice|number_format(0, '.', ' ') ~ ' ₽' : 'Цена по запросу' }}</strong></p>
+
+        {% if error %}
+            <div class="mt-6 rounded-[3px] border border-[#f5c6cb] bg-[#f8d7da] text-[#721c24] p-4">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" autocomplete="on" class="mt-6 space-y-5">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wide text-[#7a9fb5]">ФИО</label>
+                <input type="text" name="fullName" autocomplete="name" value="{{ data.fullName }}" class="mt-2 w-full border border-[#c8d7e1] rounded-[3px] px-4 py-3" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wide text-[#7a9fb5]">Телефон</label>
+                <input type="tel" name="phone" autocomplete="tel" value="{{ data.phone }}" class="mt-2 w-full border border-[#c8d7e1] rounded-[3px] px-4 py-3" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wide text-[#7a9fb5]">Email</label>
+                <input type="email" name="email" autocomplete="email" value="{{ data.email }}" class="mt-2 w-full border border-[#c8d7e1] rounded-[3px] px-4 py-3">
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wide text-[#7a9fb5]">Комментарий</label>
+                <textarea name="message" autocomplete="off" rows="5" class="mt-2 w-full border border-[#c8d7e1] rounded-[3px] px-4 py-3">{{ data.message }}</textarea>
+            </div>
+            <button type="submit" class="inline-flex items-center justify-center rounded-[3px] bg-[#2d6ca2] text-white font-bold py-3 px-6 text-sm hover:bg-[#244f7b] transition">
+                Отправить заявку
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

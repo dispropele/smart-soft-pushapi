@@ -58,6 +58,9 @@
                 <div class="text-2xl font-bold text-[#333] mb-2">Цена по запросу</div>
             {% endif %}
             <p class="text-sm text-[#7a9fb5]">Наличие и условия покупки уточняйте по телефону ломбарда.</p>
+            <a href="{{ path('app_item_purchase_request', {id: item.id}) }}" class="inline-flex items-center justify-center mt-4 w-full rounded-[3px] bg-[#2d6ca2] text-white font-bold py-3 text-sm hover:bg-[#244f7b] transition">
+                Оставить заявку на покупку
+            </a>
         </div>
 
         <div class="bg-white border border-[#c8d7e1] rounded-[3px] mb-6 overflow-hidden shadow-sm">
@@ -130,10 +133,10 @@
                     </tr>
                     {% endif %}
 
-                    {% if item.estimatedValue %}
+                    {% if item.displayPrice %}
                     <tr class="border-b border-[#f0f4f8]">
-                        <td class="px-5 py-3 text-[#7a9fb5]">Оценочная стоимость</td>
-                        <td class="px-5 py-3 text-[#333] font-medium">{{ item.estimatedValue|number_format(0, '.', ' ') }} ₽</td>
+                        <td class="px-5 py-3 text-[#7a9fb5]">Цена</td>
+                        <td class="px-5 py-3 text-[#333] font-medium">{{ item.displayPrice|number_format(0, '.', ' ') }} ₽</td>
                     </tr>
                     {% endif %}
 

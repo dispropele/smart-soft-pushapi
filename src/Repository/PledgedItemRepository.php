@@ -25,11 +25,13 @@ class PledgedItemRepository extends ServiceEntityRepository
         ?int   $goodTypeId  = null
     ): array {
         $qb = $this->createQueryBuilder('p')
+            ->addSelect('cat', 'gt', 'ins', 'ms', 'met', 'img')
             ->leftJoin('p.category', 'cat')
             ->leftJoin('p.goodType', 'gt')
             ->leftJoin('p.insert', 'ins')
             ->leftJoin('p.metalStandard', 'ms')
             ->leftJoin('ms.metal', 'met')
+            ->leftJoin('p.images', 'img')
             ->where('p.status = :status')
             ->setParameter('status', PledgedItem::STATUS_FOR_SALE);
 

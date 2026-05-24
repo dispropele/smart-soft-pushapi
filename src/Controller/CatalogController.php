@@ -3,11 +3,16 @@
 namespace App\Controller;
 
 use App\Entity\PledgedItem;
+use App\Entity\SaleRequest;
+use App\Repository\ClientRepository;
 use App\Repository\PledgedItemRepository;
+use App\Service\SystemLogger;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
 class CatalogController extends AbstractController
@@ -94,5 +99,82 @@ class CatalogController extends AbstractController
             throw $this->createNotFoundException('Товар не найден');
         }
         return $this->render('catalog/show.html.twig', ['item' => $item]);
+    }
+
+    #[Route('/item/{id}/request', name: 'app_item_purchase_request', methods: ['GET', 'POST'])]
+    public function requestPurchase(
+        int $id,
+        Request $request,
+        SessionInterface $session,
+        PledgedItemRepository $repo,
+        ClientRepository $clientRepo,
+        EntityManagerInterface $em,
+        SystemLogger $logger
+    ): Response {
+        $item = $repo->find($id);
+        if (!$item || !$item->isForSale()) {
+            throw $this->createNotFoundException('Товар не найден');
+        }
+
+        $error = null;
+        $success = false;
+        $client = null;
+        if ($session->get('client_id')) {
+            $client = $clientRepo->find((int) $session->get('client_id'));
+        }
+
+        $data = [
+            'fullName' => $client?->getFullName() ?? '',
+            'phone'    => $client?->getPhone() ?? '',
+            'email'    => $client?->getEmail() ?? '',
+            'message'  => '',
+        ];
+
+        if ($request->isMethod('POST')) {
+            $data['fullName'] = trim((string) $request->request->get('fullName', ''));
+            $data['phone']    = trim((string) $request->request->get('phone', ''));
+            $data['email']    = trim((string) $request->request->get('email', ''));
+            $data['message']  = trim((string) $request->request->get('message', ''));
+
+            if ($data['fullName'] === '' || $data['phone'] === '') {
+                $error = 'Пожалуйста, укажите ФИО и контактный телефон.';
+            } elseif ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                $error = 'Пожалуйста, укажите корректный email.';
+            } else {
+                $saleRequest = new SaleRequest();
+                $saleRequest->setPledgedItem($item)
+                    ->setFullName($data['fullName'])
+                    ->setPhone($data['phone'])
+                    ->setEmail($data['email'] ?: null)
+                    ->setMessage($data['message'] ?: null);
+
+                $em->persist($saleRequest);
+                $em->flush();
+
+                $logger->info(
+                    \App\Entity\SystemLog::CHANNEL_SALE,
+                    'Поступила заявка на покупку изделия',
+                    [
+                        'itemId'        => $item->getId(),
+                        'itemName'      => $item->getName(),
+                        'saleRequestId' => $saleRequest->getId(),
+                        'fullName'      => $data['fullName'],
+                        'phone'         => $data['phone'],
+                        'email'         => $data['email'],
+                        'message'       => $data['message'],
+                    ],
+                    $item->getId()
+                );
+
+                $this->addFlash('success', 'Ваша заявка на покупку отправлена. С вами свяжутся в ближайшее время.');
+                return $this->redirectToRoute('app_item_show', ['id' => $item->getId()]);
+            }
+        }
+
+        return $this->render('catalog/purchase_request.html.twig', [
+            'item'    => $item,
+            'error'   => $error,
+            'data'    => $data,
+        ]);
     }
 }

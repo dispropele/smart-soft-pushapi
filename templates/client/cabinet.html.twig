@@ -89,6 +89,11 @@
                                     {% endif %}">
                                     {% if ticket.status == 'grace' %}Льготный период{% else %}Активен{% endif %}
                                 </span>
+                            {% if ticket.status == 'grace' %}
+                                <div class="mt-2 text-xs text-[#856404]">
+                                    Осталось {{ ticket.getGraceDaysLeft() }} {{ ticket.getGraceDaysLeft() == 1 ? 'день' : 'дней' }} до окончания льготного периода.
+                                </div>
+                            {% endif %}
                             </div>
 
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -110,19 +115,16 @@
                                     <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Сроки</p>
                                     <p class="text-base font-semibold mt-1 text-[#333]">
                                         Срок займа: до {{ ticket.returnDate|date('d.m.Y') }}. 
-                                        Льготный период: до {{ ticket.returnDate|date_modify('+' ~ ticket.graceDays ~ ' days')|date('d.m.Y') }}
+                                        {% if ticket.getGraceEndDate() %}
+                                            Льготный период: до {{ ticket.getGraceEndDate()|date('d.m.Y') }}
+                                        {% endif %}
                                     </p>
                                 </div>
                             </div>
 
-                            {% set today = 'now'|date('Y-m-d') %}
-                            {% set issued = ticket.issuedAt|date('Y-m-d') %}
-                            {% set daysPassed = ((date(today).timestamp - date(issued).timestamp) / 86400)|round(0, 'ceil') %}
-                            {% set daysPassed = max(1, daysPassed) %}
-                            {% set dailyRate = ticket.tariff ? ticket.tariff.dailyRate : (ticket.dailyInterestRate ?? 0) %}
-                            {% set currentInterest = (ticket.loanAmount * (dailyRate / 100) * daysPassed)|round(2) %}
-                            {% set totalToPay = ticket.loanAmount + currentInterest %}
-                            
+                            {% set totalToPay = ticket.getTotalDebt() %}
+                            {% set currentInterest = ticket.getAccruedInterest() %}
+
                             <div class="bg-[#e1f0f5] border border-[#c8d7e1] rounded-[3px] p-4 mb-4">
                                 <p class="text-xs font-bold text-[#1d4e75] uppercase tracking-wide mb-2">К оплате на сегодня:</p>
                                 <div class="flex items-baseline gap-4 flex-wrap">
@@ -194,6 +196,9 @@
                                     {% elseif ticket.status == 'repledged' %}Перезалог
                                     {% else %}{{ ticket.status }}{% endif %}
                                 </span>
+                                {% if ticket.repledgedFrom %}
+                                    <span class="text-xs text-[#7a9fb5] ml-2">Продолжение {{ ticket.repledgedFrom.ticketNumber }}</span>
+                                {% endif %}
                                 {% if ticket.closedAt %}
                                     <span class="text-xs text-[#7a9fb5] ml-2">от {{ ticket.closedAt|date('d.m.Y') }}</span>
                                 {% endif %}

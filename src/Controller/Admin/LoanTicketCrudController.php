@@ -209,12 +209,12 @@ class LoanTicketCrudController extends AbstractCrudController
         $repledge = Action::new('repledge', 'Перезалог', 'fa fa-refresh')
             ->linkToCrudAction('repledgeAction')
             ->addCssClass('btn btn-warning')
-            ->displayIf(fn (LoanTicket $t) => $t->isActive());
+            ->displayIf(fn (LoanTicket $t) => $t->canBeRepledged());
 
         $redeem = Action::new('redeem', 'Выкуп клиентом', 'fa fa-check-circle')
             ->linkToCrudAction('redeemAction')
             ->addCssClass('btn btn-success')
-            ->displayIf(fn (LoanTicket $t) => $t->isActive());
+            ->displayIf(fn (LoanTicket $t) => $t->canBeRedeemed());
 
         $moveToSale = Action::new('moveToSale', 'Передать на реализацию', 'fa fa-tag')
             ->linkToCrudAction('moveToSaleAction')

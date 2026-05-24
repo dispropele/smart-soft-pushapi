@@ -172,21 +172,76 @@ class LoanTicket
             ->modify("+{$this->graceDays} days");
     }
 
+    private function getDaysBetween(?\DateTimeInterface $toDate): int
+    {
+        if (!$this->issuedAt || !$toDate) {
+            return 0;
+        }
+        $issued = (clone \DateTime::createFromInterface($this->issuedAt))->setTime(0, 0, 0);
+        $target = (clone \DateTime::createFromInterface($toDate))->setTime(0, 0, 0);
+        $days   = $issued->diff($target)->days;
+        return max(1, $days);
+    }
+
+    private function calculateAmountForDays(int $days): float
+    {
+        $amount    = (float) ($this->loanAmount ?? 0);
+        $dailyRate = (float) ($this->dailyInterestRate ?? 0);
+
+        if ($dailyRate > 0) {
+            return round($amount * (1 + $dailyRate / 100 * $days), 2);
+        }
+
+        $monthlyRate = (float) ($this->interestRate ?? 0);
+        if ($monthlyRate <= 0) {
+            return round($amount, 2);
+        }
+
+        $months = $days / self::DEFAULT_LOAN_DAYS;
+        return round($amount * (1 + $monthlyRate / 100 * $months), 2);
+    }
+
     /** Актуальная сумма к выкупу с учётом процентов */
     public function getReturnAmount(): string
     {
-        $amount = (float)($this->loanAmount ?? 0);
-        $rate   = (float)($this->interestRate ?? 0);
-        return number_format($amount * (1 + $rate / 100), 2, '.', '');
+        if (!$this->returnDate) {
+            return number_format((float) ($this->loanAmount ?? 0), 2, '.', '');
+        }
+
+        $amount = $this->calculateAmountForDays($this->getDaysBetween($this->returnDate));
+        return number_format($amount, 2, '.', '');
     }
 
     /** Сумма с учётом льготного периода (дополнительные проценты за grace) */
     public function getGraceReturnAmount(): string
     {
-        $amount = (float)($this->loanAmount ?? 0);
-        $rate   = (float)($this->interestRate ?? 0);
-        $months = 1 + ($this->graceDays / 30);
-        return number_format($amount * (1 + $rate / 100 * $months), 2, '.', '');
+        $graceEnd = $this->getGraceEndDate();
+        if (!$graceEnd) {
+            return $this->getReturnAmount();
+        }
+
+        $amount = $this->calculateAmountForDays($this->getDaysBetween($graceEnd));
+        return number_format($amount, 2, '.', '');
+    }
+
+    public function isGraceExpired(?\DateTimeInterface $atDate = null): bool
+    {
+        $graceEnd = $this->getGraceEndDate();
+        if (!$graceEnd) {
+            return false;
+        }
+        $now = $atDate ? clone \DateTime::createFromInterface($atDate) : new \DateTime();
+        return $now > $graceEnd;
+    }
+
+    public function canBeRepledged(?\DateTimeInterface $atDate = null): bool
+    {
+        return $this->isActive() && !$this->isGraceExpired($atDate);
+    }
+
+    public function canBeRedeemed(?\DateTimeInterface $atDate = null): bool
+    {
+        return $this->isActive() && !$this->isGraceExpired($atDate);
     }
 
     /** Дней до конца основного срока (отрицательное = просрочен) */
@@ -234,7 +289,14 @@ class LoanTicket
             $totalEstimate += (float) ($item->getEstimatedValue() ?? 0);
         }
 
-        if ($totalEstimate > 0 && $loanAmount > $totalEstimate) {
+        if ($totalEstimate <= 0) {
+            $context->buildViolation('Невозможно рассчитать сумму займа: оценочная стоимость заложенных изделий должна быть указана.')
+                ->atPath('loanAmount')
+                ->addViolation();
+            return;
+        }
+
+        if ($loanAmount > $totalEstimate) {
             $context->buildViolation(
                 sprintf('Сумма займа (%.2f ₽) не может превышать общую оценочную стоимость изделий (%.2f ₽).', $loanAmount, $totalEstimate)
             )->atPath('loanAmount')->addViolation();

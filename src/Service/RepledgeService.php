@@ -28,13 +28,7 @@ class RepledgeService
         $allItems = $original->getPledgedItems()->toArray();
         $totalLoan = (float) $original->getLoanAmount();
 
-        $totalEstimate = array_sum(array_map(fn($i) => (float) $i->getEstimatedValue(), $allItems));
-        $itemLoans = [];
-        foreach ($allItems as $item) {
-            $itemLoans[$item->getId()] = $totalEstimate > 0
-                ? round($totalLoan * ((float) $item->getEstimatedValue() / $totalEstimate), 2)
-                : 0.0;
-        }
+        $itemLoans = $this->allocateLoanAmounts($allItems, $totalLoan);
 
         $redeemedLoanSum = 0.0;
         foreach ($redeemedItemIds as $id) {
@@ -228,12 +222,15 @@ class RepledgeService
 
     public function redeem(LoanTicket $ticket, ?string $paymentAmount = null): void
     {
+        $now = new \DateTime();
         if ($paymentAmount !== null) {
-            $this->applyPayment($ticket, (float) $paymentAmount, new \DateTime());
+            $this->applyPayment($ticket, (float) $paymentAmount, $now);
+        } else {
+            $this->applyPayment($ticket, $ticket->getTotalDebt($now), $now);
         }
 
         $ticket->setStatus(LoanTicket::STATUS_CLOSED);
-        $ticket->setClosedAt(new \DateTime());
+        $ticket->setClosedAt($now);
 
         foreach ($ticket->getPledgedItems() as $item) {
             $item->setStatus(PledgedItem::STATUS_REDEEMED);
@@ -323,14 +320,58 @@ class RepledgeService
 
     private function calculateRedemptionAmount(LoanTicket $ticket, PledgedItem $item): ?string
     {
-        $totalLoan     = (float) ($ticket->getLoanAmount() ?? 0);
-        $totalEstimate = 0.0;
-        foreach ($ticket->getPledgedItems() as $pi) {
-            $totalEstimate += (float) ($pi->getEstimatedValue() ?? 0);
+        $totalLoan = (float) ($ticket->getLoanAmount() ?? 0);
+        $itemLoans = $this->allocateLoanAmounts($ticket->getPledgedItems()->toArray(), $totalLoan);
+
+        $amount = $itemLoans[$item->getId()] ?? 0.0;
+        if ($amount <= 0) {
+            return null;
         }
-        $itemEstimate = (float) ($item->getEstimatedValue() ?? 0);
-        if ($totalEstimate <= 0) return null;
-        return number_format(round($totalLoan * ($itemEstimate / $totalEstimate), 2), 2, '.', '');
+
+        return number_format(round($amount, 2), 2, '.', '');
+    }
+
+    private function allocateLoanAmounts(array $items, float $totalLoan): array
+    {
+        $totalEstimate = 0.0;
+        foreach ($items as $item) {
+            $totalEstimate += (float) ($item->getEstimatedValue() ?? 0);
+        }
+
+        if ($totalEstimate > 0) {
+            $weights = array_map(fn($item) => (float) ($item->getEstimatedValue() ?? 0), $items);
+        } else {
+            $weights = [];
+            foreach ($items as $item) {
+                $itemWeight  = (float) ($item->getItemWeight() ?? 0);
+                $scrapWeight = (float) ($item->getScrapWeight() ?? 0);
+                $weights[] = max($itemWeight, $scrapWeight, 1.0);
+            }
+        }
+
+        $totalWeight = array_sum($weights);
+        $result = [];
+        $remaining = $totalLoan;
+        $lastKey = array_key_last($items);
+
+        foreach ($items as $index => $item) {
+            $id = $item->getId();
+            if ($id === null) {
+                continue;
+            }
+
+            if ($index === $lastKey) {
+                $result[$id] = round($remaining, 2);
+                break;
+            }
+
+            $ratio = $totalWeight > 0 ? $weights[$index] / $totalWeight : 1 / max(1, count($items));
+            $share = round($totalLoan * $ratio, 2);
+            $result[$id] = $share;
+            $remaining -= $share;
+        }
+
+        return $result;
     }
 
     private function applyPayment(LoanTicket $ticket, float $payment, \DateTimeInterface $at): void

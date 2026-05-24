@@ -14,6 +14,7 @@ use App\Entity\Metal;
 use App\Entity\MetalColor;
 use App\Entity\MetalStandard;
 use App\Entity\PledgedItem;
+use App\Entity\SaleRequest;
 use App\Entity\SystemLog;
 use App\Entity\Tariff;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
@@ -191,6 +192,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Клиенты', 'fa fa-users', Client::class);
         yield MenuItem::linkToCrud('Залоговые билеты', 'fa fa-file-text', LoanTicket::class);
         yield MenuItem::linkToCrud('Предметы залога / Витрина', 'fa fa-cubes', PledgedItem::class);
+        yield MenuItem::linkToCrud('Продажи изделий', 'fa fa-shopping-cart', SaleRequest::class);
 
         yield MenuItem::section('Справочники');
         yield MenuItem::linkToCrud('Категории', 'fa fa-tags', Category::class);

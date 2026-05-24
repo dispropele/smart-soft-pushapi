@@ -15,6 +15,8 @@
                         <th>Металл</th>
                         <th>Вес (г)</th>
                         <th>Вставка</th>
+                        <th>Цвет</th>
+                        <th>Вес лома</th>
                         <th>Оценка</th>
                         <th>Статус</th>
                     </tr>
@@ -47,6 +49,8 @@
                                     —
                                 {% endif %}
                             </td>
+                            <td>{{ item.metalColor ? item.metalColor.name : '—' }}</td>
+                            <td>{{ item.scrapWeight ? item.scrapWeight ~ ' г' : '—' }}</td>
                             <td>
                                 {% if item.estimatedValue %}
                                     <strong>{{ item.estimatedValue|number_format(2, '.', ' ') }} ₽</strong>

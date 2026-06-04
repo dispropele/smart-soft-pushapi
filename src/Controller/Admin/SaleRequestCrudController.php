@@ -64,9 +64,8 @@ class SaleRequestCrudController extends AbstractProtectedCrudController
             yield EmailField::new('email', 'Email')->setRequired(false);
         }
 
-        if ($pageName !== Crud::PAGE_DETAIL || $saleRequest?->getMessage()) {
-            yield TextareaField::new('message', 'Комментарий')->hideOnIndex();
-        }
+        yield TextField::new('message', 'Комментарий')->hideOnForm()->onlyOnIndex();
+        yield TextareaField::new('message', 'Комментарий')->hideOnForm()->onlyOnDetail();
 
         yield ChoiceField::new('status', 'Статус')
             ->setChoices([

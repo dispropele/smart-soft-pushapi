@@ -50,13 +50,9 @@
         <h1 class="text-2xl md:text-3xl font-bold text-[#1d4e75] mb-6 leading-tight">{{ item.name }}</h1>
 
         <div class="bg-white border border-[#c8d7e1] rounded-[3px] p-6 mb-6 shadow-sm">
-            {% if item.soldPrice %}
-                <div class="text-4xl font-bold text-[#333] mb-2">
-                    {{ item.soldPrice|number_format(0, '.', ' ') }}&thinsp;<span class="text-xl font-normal text-[#7a9fb5]">{{ item.currency ? item.currency.currency : '₽' }}</span>
-                </div>
-            {% else %}
-                <div class="text-2xl font-bold text-[#333] mb-2">Цена по запросу</div>
-            {% endif %}
+            <div class="text-4xl font-bold text-[#333] mb-2">
+                {{ item.displayPrice|default(0)|number_format(0, '.', ' ') }}&thinsp;<span class="text-xl font-normal text-[#7a9fb5]">{{ item.currency ? item.currency.currency : '₽' }}</span>
+            </div>
             <a href="{{ path('app_item_purchase_request', {id: item.id}) }}" class="inline-flex items-center justify-center mt-4 w-full rounded-[3px] bg-[#2d6ca2] text-white font-bold py-3 text-sm hover:bg-[#244f7b] transition">
                 Оставить заявку на покупку
             </a>
@@ -113,7 +109,7 @@
 
                     {% if item.size %}
                     <tr class="border-b border-[#f0f4f8]">
-                        <td class="px-5 py-3 text-[#7a9fb5]">Размер / длина</td>
+                        <td class="px-5 py-3 text-[#7a9fb5]">Размер/длина</td>
                         <td class="px-5 py-3 text-[#333] font-medium">{{ item.size }}</td>
                     </tr>
                     {% endif %}
@@ -150,12 +146,6 @@
         </div>
         {% endif %}
 
-        {% if item.specification %}
-        <div class="bg-white border border-[#c8d7e1] rounded-[3px] shadow-sm overflow-hidden">
-            <div class="bg-[#f8fbfd] border-b border-[#c8d7e1] px-5 py-3 font-bold text-[#1d4e75]">Спецификация</div>
-            <div class="px-5 py-4 text-sm text-[#555] leading-relaxed whitespace-pre-line">{{ item.specification }}</div>
-        </div>
-        {% endif %}
     </div>
 </div>
 

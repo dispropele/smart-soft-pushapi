@@ -2,7 +2,7 @@
 namespace App\Command;
 
 use App\Entity\{Admin, Category, Client, Currency, GoodType, Insert, InsertType,
-    LoanTicket, Metal, MetalColor, MetalStandard, PledgedItem, Tariff};
+    LoanTicket, Metal, MetalColor, MetalStandard, PledgedItem, SaleRequest, Tariff};
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -302,8 +302,61 @@ class SeedControlExampleCommand extends Command
             ['ЛБ-010','Цепь «Бисмарк»','Золото 585','22.40','105000.00','pledged'],
             ['ЛБ-010','Кольцо «Дорожка»','Золото 750','3.80','28000.00','pledged'],
         ];
+        $items = [];
 
+        $publishedDates = [
+            '2026-04-08','2026-04-12','2026-04-18','2026-04-25',
+            '2026-05-03','2026-05-10','2026-05-16','2026-05-23',
+            '2026-05-28','2026-06-04','2026-06-11','2026-06-17',
+        ];
+        $redemptionDates = [
+            '2026-05-10','2026-05-14','2026-05-18','2026-05-22','2026-06-01',
+        ];
+
+        $descriptionMap = [
+            'Кольцо обручальное' => 'Классическое обручальное кольцо с матовой отделкой и гладкой поверхностью.',
+            'Цепь «Бисмарк»' => 'Цепь из желтого золота с прочным плетением «Бисмарк». Идеально для ежедневного ношения.',
+            'Крестик нательный' => 'Нательный крестик из серебра в стиле классики. Подходит для мужчин и женщин.',
+            'Браслет плетения «Нонна»' => 'Легкий браслет из серебра с интересным плетением и благородным блеском.',
+            'Кольцо «Помолвочное»' => 'Изящное кольцо с крупной вставкой для важного события.',
+            'Серьги-пусеты' => 'Минималистичные серьги с надежной застежкой. Подходят для любой повседневной экипировки.',
+            'Подвеска «Сердце»' => 'Стильная подвеска в форме сердца с приятной глянцевой поверхностью.',
+            'Браслет жесткий' => 'Жесткий браслет из золота с классической формой и ровной отделкой.',
+            'Перстень мужской' => 'Мужское кольцо с четким профилем и глубокой полировкой.',
+            'Кулон «Знак зодиака»' => 'Кулон с изображением знака зодиака, дополненный декоративной вставкой.',
+            'Часы наручные золотые' => 'Элегантные наручные часы с золотым корпусом и кожаным ремешком.',
+            'Часы коллекционные' => 'Коллекционные наручные часы в винтажном стиле. Сохранены в отличном состоянии.',
+        ];
+
+        $specificationMap = [
+            'Кольцо обручальное' => 'Вес 3,50 г. Размер 17. Состояние очень хорошее.',
+            'Цепь «Бисмарк»' => 'Длина 55 см. Вес 15,20 г. Состояние хорошее.',
+            'Крестик нательный' => 'Вес 4,00 г. Высота 3,5 см. Состояние отличное.',
+            'Браслет плетения «Нонна»' => 'Длина 18 см. Вес 9,00 г. Состояние хорошее.',
+            'Кольцо «Помолвочное»' => 'Вес 2,10 г. Размер 17. Вставка: фианит.',
+            'Серьги-пусеты' => 'Вес 1,50 г. Диаметр 8 мм. Состояние отличное.',
+            'Подвеска «Сердце»' => 'Размер 2,5 х 2,0 см. Вес 1,20 г. Состояние отличное.',
+            'Браслет жесткий' => 'Длина 19 см. Вес 18,40 г. Состояние хорошее.',
+            'Перстень мужской' => 'Вес 8,20 г. Размер 19. Состояние хорошее.',
+            'Кулон «Знак зодиака»' => 'Размер 3,0 х 1,8 см. Вес 2,50 г. Состояние отличное.',
+            'Часы наручные золотые' => 'Диаметр корпуса 38 мм. Состояние идеальное.',
+            'Часы коллекционные' => 'Диаметр корпуса 42 мм. Винтажный вид, полностью рабочие.',
+        ];
+
+        $itemIndex = 0;
         foreach ($itemsData as [$ticketNum, $gtName, $stdKey, $weight, $estimate, $status]) {
+            $size = null;
+            if (str_contains($gtName, 'Кольцо')) {
+                $size = '17';
+            } elseif (str_contains($gtName, 'Браслет')) {
+                $size = '18';
+            }
+
+            $description = $descriptionMap[$gtName] ?? 'Изысканное изделие из драгоценного металла.';
+            $specification = $specificationMap[$gtName] ?? sprintf('Вес %s г. Состояние хорошее.', $weight);
+            $publishedAt = $publishedDates[$itemIndex % count($publishedDates)];
+            $redemptionDate = $redemptionDates[$itemIndex % count($redemptionDates)];
+
             $item = new PledgedItem();
             $item->setName($gtName)
                 ->setGoodType($goodTypes[$gtName] ?? null)
@@ -313,21 +366,51 @@ class SeedControlExampleCommand extends Command
                 ->setScrapWeight($weight)
                 ->setEstimatedValue($estimate)
                 ->setCurrency($rub)
+                ->setSize($size)
+                ->setCondition($status === PledgedItem::STATUS_REDEEMED ? 'Хорошее' : 'Отличное')
+                ->setDescription($description)
+                ->setSpecification($specification)
                 ->setStatus($status)
-                ->setStatusDate(new \DateTime())
+                ->setStatusDate(new \DateTime($publishedAt))
                 ->setLoanTicket($tickets[$ticketNum]);
 
-            // Даты выставлены актуальные
             if ($status === PledgedItem::STATUS_FOR_SALE) {
-                $item->setSoldPrice($estimate)
-                    ->setPublishedAt(new \DateTime('2025-05-12'));
+                $salePrice = sprintf('%.2f', ((float) $estimate) * 1.1);
+                $item->setSoldPrice($salePrice)
+                    ->setPublishedAt(new \DateTime($publishedAt));
             }
             if ($status === PledgedItem::STATUS_REDEEMED) {
-                $item->setRedemptionDate(new \DateTime('2025-05-10'));
+                $item->setRedemptionDate(new \DateTime($redemptionDate));
+                $item->setStatusDate(new \DateTime($redemptionDate));
             }
 
             $this->em->persist($item);
+            $items[$ticketNum][$gtName] = $item;
+            $itemIndex++;
         }
+        $this->em->flush();
+
+        $requestData = [
+            ['ЛБ-004', 'Кольцо «Дорожка»', 'Мария Кузнецова', '89051234567', 'maria.kuznetsova@mail.ru', 'Пожалуйста, позвоните для уточнения размера перед покупкой.'],
+            ['ЛБ-004', 'Кулон «Знак зодиака»', 'Алексей Смирнов', '89601234567', 'a.smirnov@mail.ru', 'Нужен сертификат на вставку и гарантийный талон.'],
+            ['ЛБ-008', 'Серьги-пусеты', 'Ольга Ткаченко', '89207778899', 'o.tkachenko@mail.ru', 'Готова оформить заявку сегодня, прошу сохранить изделие до вечера.'],
+        ];
+
+        foreach ($requestData as [$ticketNum, $itemName, $fullName, $phone, $email, $message]) {
+            $pledgedItem = $items[$ticketNum][$itemName] ?? null;
+            if (!$pledgedItem) {
+                throw new \RuntimeException(sprintf('Не найден предмет залога %s для билета %s', $itemName, $ticketNum));
+            }
+
+            $saleRequest = new SaleRequest();
+            $saleRequest->setPledgedItem($pledgedItem)
+                ->setFullName($fullName)
+                ->setPhone($phone)
+                ->setEmail($email)
+                ->setMessage($message);
+            $this->em->persist($saleRequest);
+        }
+
         $this->em->flush();
 
         $io->success('Контрольный пример успешно добавлен!');
@@ -347,6 +430,7 @@ class SeedControlExampleCommand extends Command
                 ['Клиенты', 15],
                 ['Залоговые билеты', 10],
                 ['Предметы залога', 40],
+                ['Заявки на покупку', 3],
             ]
         );
 

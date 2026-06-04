@@ -6,143 +6,324 @@
 <title>Залоговый билет {{ ticket.ticketNumber }}</title>
 <style>
   * { box-sizing: border-box; margin:0; padding:0; }
-  body { font-family: 'Times New Roman', Times, serif; font-size:12pt; color:#000; }
-  .page { width:148mm; min-height:210mm; padding:10mm; border:2px solid #000; margin:auto; }
-  .header { text-align:center; border-bottom:1px solid #000; padding-bottom:6pt; margin-bottom:8pt }
-  .title { font-size:14pt; font-weight:bold; text-transform:uppercase; letter-spacing:1px }
-  .subtitle { font-size:10pt; margin-top:2pt }
-  .number { font-size:13pt; font-weight:bold; margin-top:4pt }
-  table.info { width:100%; border-collapse:collapse; margin-bottom:8pt }
-  table.info td { padding:3pt 4pt; border:1px solid #888; font-size:11pt; vertical-align:top }
-  table.info td.label { background:#f0f0f0; font-weight:bold; width:40%; font-size:10pt }
-  .items-table { width:100%; border-collapse:collapse; margin-bottom:8pt }
-  .items-table th, .items-table td { border:1px solid #000; padding:3pt 5pt; font-size:10pt }
-  .items-table th { background:#e8e8e8; font-weight:bold; text-align:center }
-  .section-title { font-weight:bold; font-size:11pt; margin:8pt 0 4pt; text-transform:uppercase; border-bottom:1px solid #000 }
-  .conditions { font-size:9pt; line-height:1.4; background:#fafafa; border:1px solid #ccc; padding:6pt; margin-bottom:8pt }
-  .signatures { display:flex; justify-content:space-between; margin-top:14pt }
-  .sig-block { width:46%; border-top:1px solid #000; padding-top:4pt; font-size:10pt; text-align:center }
-  .stamp { border:2px dashed #000; width:50mm; height:50mm; text-align:center; line-height:50mm; font-size:9pt; color:#888; margin:0 auto }
-  @media print { .no-print { display:none } body { margin:0 } }
+  body { font-family: 'Times New Roman', Times, serif; font-size:10pt; color:#000; }
+  .page { width:210mm; min-height:297mm; padding:15mm; margin:auto; background: white; }
+  @media print {
+      body { background: none; }
+      .page { border: none; margin: 0; padding: 10mm; }
+      .no-print { display: none; }
+  }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 10pt; page-break-inside: auto; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  table, th, td { border: 1px solid black; }
+  th, td { padding: 4px; vertical-align: top; }
+  .header-box { border: 1px solid black; width: 50%; text-align: center; padding: 10px; min-height: 100px; display: flex; flex-direction: column; justify-content: center; font-size: 14pt; }
+  .title { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
+  .lombard-info { text-align: center; font-size: 9pt; margin-bottom: 15px; }
+  .warning-text { border: 1px solid black; padding: 5px; font-size: 8pt; text-align: justify; margin-bottom: 15px; }
+  .section-title { font-weight: bold; font-style: italic; font-size: 10pt; margin-bottom: 5px; }
 </style>
 </head>
 <body>
 <div class="page">
-  <div class="header">
-    <div class="title">Залоговый билет</div>
-    <div class="subtitle">ООО «Аурум Ломбард» · ИНН XXXXXXXXXX · Лицензия № XXXXXXXX</div>
-    <div class="number">№ {{ ticket.ticketNumber }}</div>
-  </div>
+    {% set annualRate = ticket.dailyInterestRate ? ticket.dailyInterestRate * 365 : (ticket.interestRate ? ticket.interestRate * 12 : 0) %}
+    {% set interestForTerm = ticket.returnAmount - ticket.loanAmount %}
+    {% set termDays = ticket.getElapsedDays(ticket.returnDate) %}
 
-  <p class="section-title">Стороны</p>
-  <table class="info">
-    <tr>
-      <td class="label">Ломбард</td>
-      <td>ООО «Аурум Ломбард»<br>Адрес: г. Москва, ул. Примерная, д. 1</td>
-    </tr>
-    <tr>
-      <td class="label">Заёмщик (ФИО)</td>
-      <td>{{ ticket.client.fullName }}</td>
-    </tr>
-    <tr>
-      <td class="label">Паспорт</td>
-      <td>
-        {% if ticket.client.passportSeries %}{{ ticket.client.passportSeries }} {% endif %}{{ ticket.client.passportNumber }}
-      </td>
-    </tr>
-    <tr>
-      <td class="label">Адрес регистрации</td>
-      <td>{{ ticket.client.address ?? '—' }}</td>
-    </tr>
-    <tr>
-      <td class="label">Телефон</td>
-      <td>{{ ticket.client.phone ?? '—' }}</td>
-    </tr>
-  </table>
-
-  <p class="section-title">Условия займа</p>
-  <table class="info">
-    <tr>
-      <td class="label">Сумма займа</td>
-      <td><strong>{{ ticket.loanAmount|number_format(2, '.', ' ') }} руб.</strong></td>
-    </tr>
-    <tr>
-      <td class="label">Тариф</td>
-      <td>{{ ticket.tariff ? ticket.tariff.name : '—' }}</td>
-    </tr>
-    <tr>
-      <td class="label">Ставка (в мес.)</td>
-      <td>{{ ticket.interestRate ?? '—' }}%</td>
-    </tr>
-    {% if ticket.dailyInterestRate %}
-    <tr>
-      <td class="label">Ставка (в день)</td>
-      <td>{{ ticket.dailyInterestRate }}%</td>
-    </tr>
-    {% endif %}
-    <tr>
-      <td class="label">Дата выдачи</td>
-      <td>{{ ticket.issuedAt|date('d.m.Y') }}</td>
-    </tr>
-    <tr>
-      <td class="label">Срок возврата</td>
-      <td><strong>{{ ticket.returnDate|date('d.m.Y') }}</strong></td>
-    </tr>
-    <tr>
-      <td class="label">Льготный период</td>
-      <td>{{ ticket.graceDays }} дней (до {{ ticket.graceEndDate|date('d.m.Y') }})</td>
-    </tr>
-    <tr>
-      <td class="label">Сумма к возврату к {{ ticket.returnDate|date('d.m.Y') }}</td>
-      <td><strong>{{ ticket.returnAmount|number_format(2, '.', ' ') }} руб.</strong></td>
-    </tr>
-  </table>
-
-  <p class="section-title">Предметы залога</p>
-  <table class="items-table">
-    <thead>
-      <tr>
-        <th>№</th>
-        <th>Наименование</th>
-        <th>Металл / проба</th>
-        <th>Вес, г</th>
-        <th>Оценка, руб.</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for i, item in ticket.pledgedItems %}
-      <tr>
-        <td style="text-align:center">{{ i+1 }}</td>
-        <td>{{ item.name }}</td>
-        <td>{{ item.metalStandard ?? '—' }}</td>
-        <td style="text-align:right">{{ item.scrapWeight ?? item.itemWeight ?? '—' }}</td>
-        <td style="text-align:right">{{ item.estimatedValue ? item.estimatedValue|number_format(2,'.','&thinsp;') : '—' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <div class="conditions">
-    <strong>Условия хранения:</strong> Ломбард несёт ответственность за утрату или повреждение заложенной вещи в размере её оценочной стоимости. Заёмщик вправе в любое время до истечения льготного срока выкупить вещь, уплатив сумму займа и начисленные проценты.
-  </div>
-
-  <div class="signatures">
-    <div class="sig-block">
-      Представитель ломбарда<br>
-      ___________________ / ___________
+    <div style="display: flex; justify-content: space-between;">
+        <div style="width: 30%; font-size: 10pt;">
+            Штрих-код для сотрудников ломбарда:
+            <br><br>
+        </div>
+        <div style="width: 70%; display: flex;">
+            <div class="header-box" style="border-right: none;">
+                <i>Полная стоимость<br>потребительского займа в<br>процентах годовых</i><br>
+                <b>{{ annualRate|number_format(3, '.', '') }} % годовых</b><br>
+                <i>ПРОЦЕНТОВ ГОДОВЫХ</i>
+            </div>
+            <div class="header-box">
+                <i>Полная стоимость<br>потребительского займа в<br>денежном выражении</i><br>
+                <br>
+                <b>{{ interestForTerm|number_format(3, '.', '') }} руб.</b>
+            </div>
+        </div>
     </div>
-    <div class="sig-block">
-      Заёмщик<br>
-      ___________________ / ___________
-    </div>
-  </div>
 
-  <div style="text-align:center;margin-top:10pt">
-    <div class="stamp">М.П.</div>
-  </div>
+    <div class="title" style="margin-top: 20px;">
+        ЗАЛОГОВЫЙ БИЛЕТ<br>
+        № {{ ticket.ticketNumber }} от {{ ticket.issuedAt|date('d.m.Y') }}
+    </div>
+
+    <div class="lombard-info">
+        ООО «Ломбард», ИНН 7701234567, ОГРН 1237700012345<br>
+        Адрес (место нахождения): 101000, г. Москва, ул. Мясницкая, д. 15, стр. 1, офис 402<br>
+        Филиал: Отделение №1 «Академическое», 117312, г. Москва, пр-кт 60-летия Октября, д. 9<br>
+        (сведения о ломбарде и его территориально обособленном подразделении)<br>
+        <br>
+        {{ ticket.client.fullName }}, паспорт: {{ ticket.client.passportSeries }} {{ ticket.client.passportNumber }}, адрес: {{ ticket.client.address|default('г. Москва, ул. Ленина, д. 1, кв. 1') }}<br>
+        Код подразделения: 01-МСК, Дата выдачи: {{ ticket.issuedAt|date('d.m.Y') }}, Гражданство: РФ<br>
+        (сведения о заемщике)
+    </div>
+
+    <div class="warning-text">
+        Не допускается начисление процентов, неустойки (штрафа, пени), иных мер ответственности, а также платежей за оказываемые услуги (выполняемые работы, реализуемые товары) кредитором заемщику за отдельную плату после того, как сумма начисленных процентов, неустойки (штрафа, пени), иных мер ответственности, а также платежей за оказываемые услуги (выполняемые работы, реализуемые товары) кредитором заемщику за отдельную плату достигнет 130 процентов от суммы предоставленного потребительского займа.
+    </div>
+    
+    <div style="text-align: right; font-style: italic; font-size: 9pt;">Страница 1</div>
+
+    <div class="section-title">Раздел I. Индивидуальные условия договора потребительского займа</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">№<br>п/п</th>
+                <th style="width: 45%;">Условие</th>
+                <th style="width: 50%;">Содержание условия</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="text-align: center;">1</td>
+                <td>Сумма потребительского займа (далее – заем) или лимит кредитования и порядок его изменения</td>
+                <td>{{ ticket.loanAmount|number_format(2, '.', '') }} руб.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">2</td>
+                <td>Срок действия договора потребительского займа (далее – договор займа), срок возврата займа</td>
+                <td>
+                    Дата предоставления займа: {{ ticket.issuedAt|date('d.m.Y') }}<br>
+                    Срок действия договора {{ termDays }} календарных дней.<br>
+                    Срок пользования суммой займа: {{ termDays }} дней. Дата возврата суммы займа и уплаты процентов за пользования займом: {{ ticket.returnDate|date('d.m.Y') }} г.<br>
+                    Дата окончания льготного срока: {{ ticket.graceEndDate ? ticket.graceEndDate|date('d.m.Y') : '—' }}
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">3</td>
+                <td>Валюта, в которой предоставляется заем</td>
+                <td>Рубль</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">4</td>
+                <td>Процентная ставка (процентные ставки) в процентах годовых, а при применении переменной процентной ставки - порядок ее определения, соответствующий требованиям Федерального закона от 21 декабря 2013 года N 353-ФЗ "О потребительском кредите (займе)1", ее значение на дату предоставления заемщику индивидуальных условий<br><br><span style="font-size: 7pt;">1 - Собрание законодательства Российской Федерации, 2013, № 51, ст. 6673; 2020, № 14, ст. 2036.</span></td>
+                <td>ПСК: {{ annualRate|number_format(3, '.', '') }} % годовых</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">5</td>
+                <td>Порядок определения курса иностранной валюты при переводе денежных средств кредитором третьему лицу, указанному заемщиком</td>
+                <td>Не применимо.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">5.1</td>
+                <td>Указание на изменение суммы расходов заемщика при увеличении используемой в договоре потребительского займа переменной процентной ставки потребительского займа на один процентный пункт начиная со второго очередного платежа на ближайшую дату после предполагаемой даты заключения договора</td>
+                <td>Отсутствует.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">6</td>
+                <td>Количество, размер и периодичность (сроки) платежей заемщика по договору или порядок определения этих платежей</td>
+                <td>
+                    График платежей: сумма займа в срок до {{ ticket.returnDate|date('d.m.Y') }} г.<br>
+                    Возврат суммы займа и уплата процентов за пользование займом осуществляется единовременно.<br>
+                    Общая сумма платежа на установленную дату возврата составляет: {{ ticket.returnAmount|number_format(2, '.', '') }} руб., в том числе: в погашение основного долга {{ ticket.loanAmount|number_format(2, '.', '') }} руб., в погашение процентов за пользованием займом: {{ interestForTerm|number_format(2, '.', '') }} руб.<br>
+                    Сумма выкупа по окончании льготного периода: {{ ticket.graceReturnAmount|number_format(2, '.', '') }} руб.
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">7</td>
+                <td>Порядок изменения количества, размера и периодичности (сроков) платежей заемщика при частичном досрочном возврате займа</td>
+                <td>При частичном досрочном возврате займа новые размер и срок платежа определяются новым залоговым билетом. Количество платежей не меняется.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">8</td>
+                <td>Способы исполнения заемщиком обязательств по договору по месту нахождения заемщика</td>
+                <td>Внесением наличных денежных средств, по месту заключения договора. Место заключения договора: г. Москва, ул. Примерная, д. 1.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">8.1</td>
+                <td>Бесплатный способ исполнения заемщиком обязательств по договору займа</td>
+                <td>Внесением наличных денежных средств, по месту заключения договора. Место заключения договора: г. Москва, ул. Примерная, д. 1.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">9</td>
+                <td>Обязанность заемщика заключить иные договоры</td>
+                <td>Не применимо.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">10</td>
+                <td>Обязанность заемщика по предоставлению обеспечения исполнения обязательств по договору и требования к такому обеспечению</td>
+                <td>Заем обеспечивается залогом движимого имущества, предназначенного для личного потребления и не обремененного правами третьих лиц. Наименование, описание и оценка заложенной вещи указаны в разделе II настоящего договора займа.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">11</td>
+                <td>Цели использования заемщиком займа</td>
+                <td>Не применимо.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">12</td>
+                <td>Ответственность заемщика за ненадлежащее исполнение условий договора, размер неустойки (штрафа, пени) или порядок их определения</td>
+                <td>Отсутствует.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">13</td>
+                <td>Условие об уступке кредитором третьим лицам прав (требований) по договору займа</td>
+                <td>Уступка прав (требований) по договору потребительского займа не осуществляется.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">14</td>
+                <td>Согласие заемщика с общими условиями договора</td>
+                <td>С общими условиями договора потребительского займа, установленными Кредитором в одностороннем порядке и являющимися неотъемлемой частью Договора<br>Заемщик СОГЛАСЕН _________ НЕ СОГЛАСЕН_________.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">15</td>
+                <td>Оказываемые услуги (выполняемые работы, реализуемые товары) кредитором заемщику за отдельную плату и необходимые для заключения договора займа (при наличии), их цена или порядок ее определения (при наличии), а также подтверждение согласия заемщика на их оказание (выполнение, приобретение)</td>
+                <td>Не применимо.</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">16</td>
+                <td>Способ обмена информацией между кредитором и заемщиком</td>
+                <td>I. Способы сообщения информации Кредитору:<br>По телефону<br>II. Способы сообщения информации Заёмщику:<br>1. По телефону<br>2. По почте:</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;">17</td>
+                <td colspan="2">Я, {{ ticket.client.fullName }}, СОГЛАСЕН _________________ НЕ СОГЛАСЕН_________________. на осуществление обработки (сбора, систематизации, накопления, хранения, уничтожения, обновления, изменения, использования, передачи (в интересах , обезличивания, блокирования, уничтожения) персональных данных, указанных в настоящем Договоре. Цель обработки персональных данных: осуществление и выполнение возложенных законодательством Российской Федерации на Ломбард функций, полномочий и обязанностей, в том числе представление моих персональных данных в ГИИС ДМДК. Данное согласие действительно с момента подписания настоящего договора займа до дня его отзыва или до прекращения обработки персональных данных, и может быть изменено мной в любой момент в одностороннем порядке путём его отзыва на основании моего письменного заявления, направляемого в адрес Ломбарда почтовым отправлением с уведомлением о вручении, либо врученного лично под расписку представителю Ломбарда. Я уведомлен(а) о том, что в случае отзыва моего согласия на обработку персональных данных оператор вправе продолжить обработку персональных данных без моего согласия при наличии оснований, указанных в пунктах 2 - 11 ч. 1 ст. 6 ФЗ «О персональных данных».</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="page-break-before: always;"></div>
+    <div style="text-align: right; font-style: italic; font-size: 9pt;">Страница 2</div>
+    
+    <div class="section-title">Раздел II. Информация о заложенной вещи</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">№ п/п</th>
+                <th style="width: 75%;">Наименование и описание заложенной вещи, позволяющие ее идентифицировать</th>
+                <th style="width: 20%;">Оценка заложенной вещи</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set totalEstimated = 0 %}
+            {% for item in ticket.pledgedItems %}
+                {% set totalEstimated = totalEstimated + item.estimatedValue %}
+            <tr>
+                <td style="text-align: center;">{{ loop.index }}</td>
+                <td>{{ item.name }}, {{ item.goodType ? item.goodType.name ~ ', ' : '' }}{{ item.metalStandard ? item.metalStandard.metal.name ~ ' ' ~ item.metalStandard.name ~ ', ' : '' }}вес: {{ item.itemWeight ?? item.scrapWeight ?? '—' }} г.</td>
+                <td style="text-align: right;">{{ item.estimatedValue|number_format(2, '.', '') }} руб.</td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="2" style="text-align: right; font-weight: bold;">Итого: (сумма оценки):</td>
+                <td style="text-align: right; font-weight: bold;">{{ totalEstimated|number_format(2, '.', '') }} руб.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning-text">
+        <b>Для информации</b><br>
+        В случае если заем не был погашен заемщиком в срок, указанный в строке 2 раздела I залогового билета, ломбард не вправе обратить взыскание на заложенную вещь в течение льготного месячного срока.<br>
+        В случае невозвращения в срок, указанный в строке 2 раздела I залогового билета, суммы предоставленного займа заемщик в любое время до продажи заложенной вещи имеет право прекратить обращение на нее взыскания и ее реализацию, исполнив предусмотренное договором займа и обеспеченное залогом обязательство.<br>
+        В течение трех лет со дня реализации заложенной вещи заемщик имеет право обратиться в ломбард за получением от него разницы, образовавшейся в результате превышения суммы, вырученной при реализации ломбардом заложенной вещи, или суммы ее оценки над суммой обязательств заемщика перед ломбардом, определяемой на день продажи, в случае возникновения такого превышения.
+    </div>
+
+    <div style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between;">
+            <div style="width: 5%;">✓</div>
+            <div style="width: 35%; border-bottom: 1px solid black;"></div>
+            <div style="width: 40%; border-bottom: 1px solid black;"></div>
+            <div style="width: 15%; border-bottom: 1px solid black;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 8pt; text-align: center;">
+            <div style="width: 5%;"></div>
+            <div style="width: 35%;">(подпись заемщика)</div>
+            <div style="width: 40%;">(расшифровка подписи заемщика)</div>
+            <div style="width: 15%;">(дата)</div>
+        </div>
+    </div>
+
+    <div style="font-size: 9pt; margin-top: 15px; margin-bottom: 5px;">
+        В случае неисполнения заемщиком обязательства, предусмотренного договором займа, обращение взыскания на заложенную вещь осуществляется без совершения исполнительной надписи нотариуса:
+    </div>
+    <div style="display: flex; align-items: center; font-size: 9pt; margin-bottom: 15px;">
+        <div style="margin-right: 10px;">согласен</div>
+        <div style="width: 20px; height: 20px; border: 2px solid black; margin-right: 30px;"></div>
+        <div style="margin-right: 10px;">не согласен</div>
+        <div style="width: 20px; height: 20px; border: 2px solid black;"></div>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between;">
+            <div style="width: 5%;">✓</div>
+            <div style="width: 35%; border-bottom: 1px solid black;"></div>
+            <div style="width: 40%; border-bottom: 1px solid black;"></div>
+            <div style="width: 15%; border-bottom: 1px solid black;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 8pt; text-align: center;">
+            <div style="width: 5%;"></div>
+            <div style="width: 35%;">(подпись заемщика)</div>
+            <div style="width: 40%;">(расшифровка подписи заемщика)</div>
+            <div style="width: 15%;">(дата)</div>
+        </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 15px;">Расчет суммы оплаты</div>
+    <table>
+        <tr>
+            <td style="width: 33%;">За срок ____________________ дней</td>
+            <td style="width: 33%;">За прочие услуги _________________________<br>По займу ________________________________<br>Итого к оплате ___________________________</td>
+            <td style="width: 34%;">Сумма ___________________________________</td>
+        </tr>
+    </table>
+
+    <div style="font-size: 9pt; margin-bottom: 15px;">Имущество получил, претензий не имею</div>
+
+    <div style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between;">
+            <div style="width: 35%; border-bottom: 1px solid black;"></div>
+            <div style="width: 40%; border-bottom: 1px solid black;"></div>
+            <div style="width: 15%; border-bottom: 1px solid black;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 8pt; text-align: center;">
+            <div style="width: 35%;">(подпись заемщика)</div>
+            <div style="width: 40%;">(расшифровка подписи заемщика)</div>
+            <div style="width: 15%;">(дата)</div>
+        </div>
+    </div>
+
+    <div style="font-size: 9pt; margin-top: 15px; margin-bottom: 15px;">С условиями договора займа согласен, заем получил</div>
+
+    <div style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between;">
+            <div style="width: 5%;">✓</div>
+            <div style="width: 35%; border-bottom: 1px solid black;"></div>
+            <div style="width: 40%; border-bottom: 1px solid black;"></div>
+            <div style="width: 15%; border-bottom: 1px solid black;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 8pt; text-align: center;">
+            <div style="width: 5%;"></div>
+            <div style="width: 35%;">(подпись заемщика)</div>
+            <div style="width: 40%;">(расшифровка подписи заемщика)</div>
+            <div style="width: 15%;">(дата)</div>
+        </div>
+    </div>
+
+    <div style="font-size: 9pt; margin-top: 15px; margin-bottom: 15px;">Залог принят, заем выдан</div>
+
+    <div style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between;">
+            <div style="width: 30%; border-bottom: 1px solid black;"></div>
+            <div style="width: 25%; border-bottom: 1px solid black;"></div>
+            <div style="width: 25%; border-bottom: 1px solid black;"></div>
+            <div style="width: 15%; border-bottom: 1px solid black;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 8pt; text-align: center;">
+            <div style="width: 30%;">(наименование должности)</div>
+            <div style="width: 25%;">(подпись)</div>
+            <div style="width: 25%;">(расшифровка подписи)</div>
+            <div style="width: 15%;">(дата)</div>
+        </div>
+    </div>
 </div>
 
-<div class="no-print" style="text-align:center;margin:20px">
+<div class="no-print" style="text-align:center;margin:20px; padding-bottom: 20px;">
   <button onclick="window.print()" style="padding:10px 30px;font-size:14pt;cursor:pointer">
     🖨 Распечатать
   </button>

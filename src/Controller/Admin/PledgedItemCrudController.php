@@ -176,7 +176,10 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
                 ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]])
                 ->onlyOnForms();
             yield TextField::new('insertDescription', 'Описание вставки')->onlyOnForms();
-            yield TextField::new('size', 'Размер (см)')->onlyOnForms();
+            yield TextField::new('size', 'Размер')
+                ->setRequired(false)
+                ->setHelp('Кольца в мм (17.5), цепи в см (50 см)')
+                ->onlyOnForms();
             yield NumberField::new('scrapWeight', 'Вес лома (г)')
                 ->setNumDecimals(2)
                 ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]])
@@ -228,7 +231,9 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
         yield AssociationField::new('goodType', 'Вид изделия')
             ->autocomplete()->setRequired(true);
 
-        yield TextField::new('size', 'Размер (см)')->setRequired(false);
+        yield TextField::new('size', 'Размер')
+            ->setRequired(false)
+            ->setHelp('Кольца в мм (17.5), цепи в см (50 см)');
 
         yield Field::new('metal', 'Металл')
             ->setFormType(\Symfony\Bridge\Doctrine\Form\Type\EntityType::class)

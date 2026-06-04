@@ -8,7 +8,7 @@
         <a href="{{ path('app_item_show', {id: item.id}) }}" class="text-[#2d6ca2] hover:underline text-sm">← Вернуться к товару</a>
         <h1 class="text-2xl font-bold text-[#1d4e75] mt-4">Заявка на покупку изделия</h1>
         <p class="text-sm text-[#7a9fb5] mt-2">Товар: <strong>{{ item.name }}</strong></p>
-        <p class="text-sm text-[#7a9fb5]">Цена: <strong>{{ item.displayPrice ? item.displayPrice|number_format(0, '.', ' ') ~ ' ₽' : 'Цена по запросу' }}</strong></p>
+        <p class="text-sm text-[#7a9fb5]">Цена: <strong>{{ item.displayPrice|default(0)|number_format(0, '.', ' ') }} ₽</strong></p>
 
         {% if error %}
             <div class="mt-6 rounded-[3px] border border-[#f5c6cb] bg-[#f8d7da] text-[#721c24] p-4">{{ error }}</div>
@@ -30,6 +30,13 @@
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wide text-[#7a9fb5]">Комментарий</label>
                 <textarea name="message" autocomplete="off" rows="5" class="mt-2 w-full border border-[#c8d7e1] rounded-[3px] px-4 py-3">{{ data.message }}</textarea>
+            </div>
+            <div class="flex items-start gap-3">
+                <label class="inline-flex items-center text-sm text-[#1d4e75]">
+                    <input type="checkbox" name="consent" value="1" {{ data.consent ? 'checked' : '' }} required
+                        class="mt-1 h-4 w-4 rounded border border-[#c8d7e1] text-[#2d6ca2] focus:ring-[#2d6ca2]">
+                    <span class="ml-3">Я согласен(а) на обработку персональных данных для обработки заявки.</span>
+                </label>
             </div>
             <button type="submit" class="inline-flex items-center justify-center rounded-[3px] bg-[#2d6ca2] text-white font-bold py-3 px-6 text-sm hover:bg-[#244f7b] transition">
                 Отправить заявку

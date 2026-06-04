@@ -128,6 +128,7 @@ class CatalogController extends AbstractController
             'phone'    => $client?->getPhone() ?? '',
             'email'    => $client?->getEmail() ?? '',
             'message'  => '',
+            'consent'  => false,
         ];
 
         if ($request->isMethod('POST')) {
@@ -135,11 +136,14 @@ class CatalogController extends AbstractController
             $data['phone']    = trim((string) $request->request->get('phone', ''));
             $data['email']    = trim((string) $request->request->get('email', ''));
             $data['message']  = trim((string) $request->request->get('message', ''));
+            $data['consent']  = $request->request->get('consent') !== null;
 
             if ($data['fullName'] === '' || $data['phone'] === '') {
                 $error = 'Пожалуйста, укажите ФИО и контактный телефон.';
             } elseif ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
                 $error = 'Пожалуйста, укажите корректный email.';
+            } elseif (!$data['consent']) {
+                $error = 'Для отправки заявки необходимо согласие на обработку персональных данных.';
             } else {
                 $saleRequest = new SaleRequest();
                 $saleRequest->setPledgedItem($item)

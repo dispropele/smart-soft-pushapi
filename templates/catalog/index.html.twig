@@ -12,7 +12,7 @@
 {# Фильтры #}
 <div class="mb-6 bg-white border border-[#c8d7e1] rounded-[3px] p-4">
     <form method="GET" id="filterForm">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
                 <label class="block text-xs font-bold text-[#1d4e75] mb-1 uppercase tracking-wide">Поиск</label>
                 <input type="text" name="q" value="{{ search }}" placeholder="Название изделия…"
@@ -27,15 +27,6 @@
                 <label class="block text-xs font-bold text-[#1d4e75] mb-1 uppercase tracking-wide">Цена до</label>
                 <input type="number" name="price_max" value="{{ priceMax }}" placeholder="1000" step="100" min="0"
                     class="w-full px-3 py-2 border border-[#c8d7e1] rounded-[3px] text-sm focus:outline-none focus:border-[#2d6ca2]">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-[#1d4e75] mb-1 uppercase tracking-wide">Сортировка</label>
-                <select name="sort" class="w-full px-3 py-2 border border-[#c8d7e1] rounded-[3px] text-sm focus:outline-none focus:border-[#2d6ca2]">
-                    <option value="date"       {{ sort == 'date'       ? 'selected' : '' }}>По новизне</option>
-                    <option value="price_asc"  {{ sort == 'price_asc'  ? 'selected' : '' }}>Цена (↑)</option>
-                    <option value="price_desc" {{ sort == 'price_desc' ? 'selected' : '' }}>Цена (↓)</option>
-                    <option value="name"       {{ sort == 'name'       ? 'selected' : '' }}>По названию</option>
-                </select>
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -109,12 +100,12 @@
 
                     <div class="text-xs text-[#7a9fb5] mb-2 space-y-0.5">
                         {% if item.itemWeight %}<div>Вес: {{ item.itemWeight }} г</div>{% endif %}
-                        {% if item.size %}<div>Размер: {{ item.size }}</div>{% endif %}
+                        {% if item.size %}<div>Размер/длина: {{ item.size }}</div>{% endif %}
                         {% if item.condition %}<div>Состояние: {{ item.condition }}</div>{% endif %}
                     </div>
 
                     <div class="text-xl font-black text-[#333] mt-auto mb-2 tracking-tight">
-                        {{ item.soldPrice|number_format(0, '.', ' ') }}&nbsp;<span class="text-lg font-bold">{{ item.currency ? (item.currency.currency == 'RUB' ? '₽' : item.currency.currency) : '₽' }}</span>
+                        {{ item.displayPrice|default(0)|number_format(0, '.', ' ') }}&nbsp;<span class="text-lg font-bold">{{ item.currency ? (item.currency.currency == 'RUB' ? '₽' : item.currency.currency) : '₽' }}</span>
                     </div>
 
                     <a href="{{ path('app_item_show', {id: item.id}) }}"

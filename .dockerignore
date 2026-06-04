@@ -15,7 +15,6 @@ npm-debug.log
 tests
 phpunit.xml
 phpunit.dist.xml
-composer.lock
 README.md
 DIPLOMA_README.md
 docs

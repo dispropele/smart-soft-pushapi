@@ -30,14 +30,14 @@ WORKDIR /app
 # Copy composer.json and composer.lock
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Install PHP dependencies without running scripts that require application code
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 # Copy application code
 COPY . .
 
-# Install importmap vendor assets (tailwindcss и др.)
-RUN DEFAULT_URI=http://localhost APP_ENV=prod php bin/console importmap:install
+# Run Symfony auto-scripts after application code is available
+RUN DEFAULT_URI=http://localhost APP_ENV=prod composer run-script auto-scripts
 
 # Build Tailwind CSS for production
 RUN DEFAULT_URI=http://localhost APP_ENV=prod php bin/console tailwind:build --minify

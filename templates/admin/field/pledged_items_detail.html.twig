@@ -24,11 +24,11 @@
                 <tbody>
                     {% for item in field.value %}
                         {% set statusClass = 'bg-light text-dark' %}
-                        {% if item.status == 'pledged' %}{% set statusClass = 'bg-primary' %}{% endif %}
-                        {% if item.status == 'redeemed' %}{% set statusClass = 'bg-success' %}{% endif %}
+                        {% if item.status == 'pledged' %}{% set statusClass = 'bg-primary text-white' %}{% endif %}
+                        {% if item.status == 'redeemed' %}{% set statusClass = 'bg-success text-white' %}{% endif %}
                         {% if item.status == 'for_sale' %}{% set statusClass = 'bg-warning text-dark' %}{% endif %}
-                        {% if item.status == 'sold' %}{% set statusClass = 'bg-danger' %}{% endif %}
-                        {% if item.status == 'withdrawn' %}{% set statusClass = 'bg-secondary' %}{% endif %}
+                        {% if item.status == 'sold' %}{% set statusClass = 'bg-danger text-white' %}{% endif %}
+                        {% if item.status == 'withdrawn' %}{% set statusClass = 'bg-secondary text-white' %}{% endif %}
                         <tr>
                             <td>{{ loop.index }}</td>
                             <td>

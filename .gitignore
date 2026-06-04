@@ -8,6 +8,8 @@
 /var/
 /vendor/
 
+/.idea/
+
 /public/uploads/
 
 /node_modules/

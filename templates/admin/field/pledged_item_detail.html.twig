@@ -5,12 +5,12 @@
 {% set isSold = item.status == 'sold' %}
 {% set isRedeemed = item.status == 'redeemed' %}
 {% set statusColors = {
-    'pledged': 'bg-primary',
-    'redeemed': 'bg-success',
+    'pledged': 'bg-primary text-white',
+    'redeemed': 'bg-success text-white',
     'for_sale': 'bg-warning text-dark',
-    'sold': 'bg-danger',
-    'withdrawn': 'bg-secondary',
-    'hidden': 'bg-dark',
+    'sold': 'bg-danger text-white',
+    'withdrawn': 'bg-secondary text-white',
+    'hidden': 'bg-dark text-white',
 } %}
 
 <div class="pledged-item-detail">

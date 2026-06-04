@@ -158,9 +158,9 @@ class LoanTicketCrudController extends AbstractCrudController
                 LoanTicket::STATUS_OPEN      => '<span class="badge bg-success">● Открыт</span>',
                 LoanTicket::STATUS_GRACE     => '<span class="badge bg-warning text-dark">● Льготный период</span>',
                 LoanTicket::STATUS_CLOSED    => '<span class="text-muted small">● Закрыт</span>',
-                LoanTicket::STATUS_EXPIRED   => '<span class="badge bg-danger">● Просрочен</span>',
+                LoanTicket::STATUS_EXPIRED   => '<span class="badge bg-danger text-white">● Просрочен</span>',
                 LoanTicket::STATUS_REPLEDGED => '<span class="badge bg-info text-dark">● Перезалог</span>',
-                LoanTicket::STATUS_CANCELLED => '<span class="badge bg-secondary">✕ Аннулирован</span>',
+                LoanTicket::STATUS_CANCELLED => '<span class="badge bg-secondary text-white">✕ Аннулирован</span>',
                 default                      => $v ?? '—',
             });
 

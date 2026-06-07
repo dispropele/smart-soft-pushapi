@@ -25,10 +25,11 @@ class PledgedItemRepository extends ServiceEntityRepository
         ?int   $goodTypeId  = null
     ): array {
         $qb = $this->createQueryBuilder('p')
-            ->addSelect('cat', 'gt', 'ins', 'ms', 'met', 'img')
+            ->addSelect('cat', 'gt', 'pin', 'ins', 'ms', 'met', 'img')
             ->leftJoin('p.category', 'cat')
             ->leftJoin('p.goodType', 'gt')
-            ->leftJoin('p.insert', 'ins')
+            ->leftJoin('p.itemInserts', 'pin')
+            ->leftJoin('pin.insert', 'ins')
             ->leftJoin('p.metalStandard', 'ms')
             ->leftJoin('ms.metal', 'met')
             ->leftJoin('p.images', 'img')
@@ -75,7 +76,8 @@ class PledgedItemRepository extends ServiceEntityRepository
             ->select('COUNT(p.id)')
             ->leftJoin('p.category', 'cat')
             ->leftJoin('p.goodType', 'gt')
-            ->leftJoin('p.insert', 'ins')
+            ->leftJoin('p.itemInserts', 'pin')
+            ->leftJoin('pin.insert', 'ins')
             ->leftJoin('p.metalStandard', 'ms')
             ->leftJoin('ms.metal', 'met')
             ->where('p.status = :status')

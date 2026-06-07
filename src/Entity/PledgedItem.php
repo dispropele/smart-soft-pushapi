@@ -48,15 +48,9 @@ private ?MetalStandard $metalStandard = null;
 #[ORM\JoinColumn(name: 'metal_color_id', nullable: true)]
 private ?MetalColor $metalColor = null;
 
-#[ORM\ManyToOne(targetEntity: Insert::class)]
-#[ORM\JoinColumn(name: 'insert_id', nullable: true)]
-private ?Insert $insert = null;
-
-#[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
-private ?string $insertWeight = null;
-
-#[ORM\Column(type: Types::TEXT, nullable: true)]
-private ?string $insertDescription = null;
+#[ORM\OneToMany(mappedBy: 'pledgedItem', targetEntity: PledgedItemInsert::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+#[Assert\Valid]
+private Collection $itemInserts;
 
 #[ORM\ManyToOne(targetEntity: Currency::class)]
 #[ORM\JoinColumn(nullable: true)]
@@ -110,6 +104,7 @@ private Collection $images;
 public function __construct()
 {
     $this->images = new ArrayCollection();
+    $this->itemInserts = new ArrayCollection();
     $this->statusDate = new \DateTime();
 }
 
@@ -141,16 +136,6 @@ public function validatePledgedItem(ExecutionContextInterface $context): void
             $scrapWeight, $itemWeight
         ))
             ->atPath('scrapWeight')
-            ->addViolation();
-    }
-
-    $insertWeight = (float) ($this->getInsertWeight() ?? 0);
-    if ($itemWeight > 0 && $insertWeight > 0 && $insertWeight > $itemWeight) {
-        $context->buildViolation(sprintf(
-            'Вес вставки (%.2f г) не может превышать вес изделия (%.2f г).',
-            $insertWeight, $itemWeight
-        ))
-            ->atPath('insertWeight')
             ->addViolation();
     }
 
@@ -236,12 +221,28 @@ public function getMetal(): ?Metal { return $this->metalStandard?->getMetal(); }
 public function setMetal(?Metal $metal): static { return $this; }
 public function getMetalColor(): ?MetalColor { return $this->metalColor; }
 public function setMetalColor(?MetalColor $mc): static { $this->metalColor = $mc; return $this; }
-public function getInsert(): ?Insert { return $this->insert; }
-public function setInsert(?Insert $i): static { $this->insert = $i; return $this; }
-public function getInsertWeight(): ?string { return $this->insertWeight; }
-public function setInsertWeight(?string $v): static { $this->insertWeight = $v; return $this; }
-public function getInsertDescription(): ?string { return $this->insertDescription; }
-public function setInsertDescription(?string $v): static { $this->insertDescription = $v; return $this; }
+public function getItemInserts(): Collection { return $this->itemInserts; }
+public function addItemInsert(PledgedItemInsert $itemInsert): static
+{
+    if (!$this->itemInserts->contains($itemInsert)) {
+        $this->itemInserts->add($itemInsert);
+        $itemInsert->setPledgedItem($this);
+    }
+    return $this;
+}
+public function removeItemInsert(PledgedItemInsert $itemInsert): static
+{
+    if ($this->itemInserts->removeElement($itemInsert)) {
+        if ($itemInsert->getPledgedItem() === $this) {
+            $itemInsert->setPledgedItem(null);
+        }
+    }
+    return $this;
+}
+public function getTotalInsertWeight(): float
+{
+    return array_sum($this->itemInserts->map(fn(PledgedItemInsert $insert) => (float) ($insert->getWeight() ?? 0))->toArray());
+}
 public function getCurrency(): ?Currency { return $this->currency; }
 public function setCurrency(?Currency $c): static { $this->currency = $c; return $this; }
 public function getName(): ?string { return $this->name; }

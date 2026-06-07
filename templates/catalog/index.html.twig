@@ -94,8 +94,13 @@
                         </p>
                     {% endif %}
 
-                    {% if item.insert %}
-                        <p class="text-xs text-[#7a9fb5] mb-1">Вставка: {{ item.insert.name }}</p>
+                    {% if item.itemInserts|length > 0 %}
+                        <p class="text-xs text-[#7a9fb5] mb-1">
+                            Вставки:
+                            {% for ins in item.itemInserts %}
+                                {{ ins.insert.name }}{% if ins.quantity > 1 %} ×{{ ins.quantity }}{% endif %}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
                     {% endif %}
 
                     <div class="text-xs text-[#7a9fb5] mb-2 space-y-0.5">

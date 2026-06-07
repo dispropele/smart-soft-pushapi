@@ -40,7 +40,7 @@ class InsertCrudController extends AbstractProtectedCrudController
         if (!$entity instanceof Insert) return null;
 
         $count = $this->em->createQuery(
-            'SELECT COUNT(p) FROM App\Entity\PledgedItem p WHERE p.insert = :i'
+            'SELECT COUNT(pi) FROM App\Entity\PledgedItemInsert pi WHERE pi.insert = :i'
         )->setParameter('i', $entity)->getSingleScalarResult();
 
         if ($count > 0) {

@@ -160,14 +160,23 @@ class PledgedItemTest extends TestCase
         $this->assertSame('40000.00', $item->getEstimatedValue());
     }
 
-    public function testInsertWeightAndDescription(): void
+    public function testItemInsertCollection(): void
     {
         $item = $this->makeItem();
-        $item->setInsertWeight('0.25');
-        $item->setInsertDescription('Бриллиант круглый');
+        $insert = new \App\Entity\Insert();
+        $insert->setName('Бриллиант')->setInsertType(new \App\Entity\InsertType());
 
-        $this->assertSame('0.25', $item->getInsertWeight());
-        $this->assertSame('Бриллиант круглый', $item->getInsertDescription());
+        $itemInsert = new \App\Entity\PledgedItemInsert();
+        $itemInsert->setInsert($insert)
+            ->setWeight('0.25')
+            ->setQuantity(2)
+            ->setDescription('Бриллиант круглый');
+
+        $item->addItemInsert($itemInsert);
+
+        $this->assertCount(1, $item->getItemInserts());
+        $this->assertSame('0.25', $item->getItemInserts()->first()->getWeight());
+        $this->assertSame(2, $item->getItemInserts()->first()->getQuantity());
     }
 
     // ── toString ─────────────────────────────────────────────────────────────

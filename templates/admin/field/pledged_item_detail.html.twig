@@ -110,9 +110,9 @@
                             <dd class="col-sm-7">{{ item.itemWeight }} г</dd>
                         {% endif %}
 
-                        {% if item.insertWeight %}
+                        {% if item.totalInsertWeight > 0 %}
                             <dt class="col-sm-5">Вес вставок</dt>
-                            <dd class="col-sm-7">{{ item.insertWeight }} г</dd>
+                            <dd class="col-sm-7">{{ item.totalInsertWeight|number_format(2, '.', ' ') }} г</dd>
                         {% endif %}
 
                         {% if item.scrapWeight %}
@@ -120,9 +120,8 @@
                             <dd class="col-sm-7">{{ item.scrapWeight }} г</dd>
                         {% endif %}
 
-                        {# Умный расчет: чистый вес металла #}
-                        {% if item.itemWeight and item.insertWeight %}
-                            {% set netWeight = item.itemWeight - item.insertWeight %}
+                        {% if item.itemWeight and item.totalInsertWeight > 0 %}
+                            {% set netWeight = item.itemWeight - item.totalInsertWeight %}
                             <dt class="col-sm-5 text-success">Чистый вес металла</dt>
                             <dd class="col-sm-7 text-success fw-bold">{{ netWeight|number_format(2, '.', ' ') }} г</dd>
                         {% endif %}
@@ -132,20 +131,23 @@
         </div>
 
         {# ===== БЛОК 4: Вставки ===== #}
-        {% if item.insert or item.insertDescription %}
+        {% if item.itemInserts|length > 0 %}
             <div class="col-md-6">
                 <div class="card h-100">
                     <div class="card-header fw-bold"><i class="fa fa-diamond"></i> Вставки</div>
                     <div class="card-body">
                         <dl class="row mb-0">
-                            {% if item.insert %}
-                                <dt class="col-sm-5">Вставка</dt>
-                                <dd class="col-sm-7">{{ item.insert }}</dd>
-                            {% endif %}
-                            {% if item.insertDescription %}
-                                <dt class="col-sm-5">Описание вставки</dt>
-                                <dd class="col-sm-7">{{ item.insertDescription }}</dd>
-                            {% endif %}
+                            {% for ins in item.itemInserts %}
+                                <dt class="col-sm-5">Вставка {{ loop.index }}</dt>
+                                <dd class="col-sm-7">
+                                    <strong>{{ ins.insert }}</strong>
+                                    {% if ins.weight %} — {{ ins.weight }} г{% endif %}
+                                    {% if ins.quantity > 1 %} · {{ ins.quantity }} шт.{% endif %}
+                                    {% if ins.description %}
+                                        <div class="text-muted small mt-1">{{ ins.description|nl2br }}</div>
+                                    {% endif %}
+                                </dd>
+                            {% endfor %}
                         </dl>
                     </div>
                 </div>

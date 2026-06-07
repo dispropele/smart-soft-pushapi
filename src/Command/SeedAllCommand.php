@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Entity\{Category, Currency, GoodType, Insert, InsertType, MetalColor, MetalStandard, Metal, PledgedItem};
+use App\Entity\{Category, Currency, GoodType, Insert, InsertType, MetalColor, MetalStandard, Metal, PledgedItem, PledgedItemInsert};
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -235,9 +235,6 @@ class SeedAllCommand extends Command
             if (isset($goodTypeByCatAndName[$gtKey])) {
                 $item->setGoodType($goodTypeByCatAndName[$gtKey]);
             }
-            if ($insertName !== null && isset($insertMap[$insertName])) {
-                $item->setInsert($insertMap[$insertName]);
-            }
             if ($colorCode !== null && isset($colorMap[$colorCode])) {
                 $item->setMetalColor($colorMap[$colorCode]);
             }
@@ -246,9 +243,16 @@ class SeedAllCommand extends Command
             }
             if ($itemWeight !== null)        { $item->setItemWeight($itemWeight); }
             if ($scrapWeight !== null)       { $item->setScrapWeight($scrapWeight); }
-            if ($insertWeight !== null)      { $item->setInsertWeight($insertWeight); }
-            if ($insertDescription !== null) { $item->setInsertDescription($insertDescription); }
             if ($condition !== null)         { $item->setCondition($condition); }
+
+            if ($insertName !== null && isset($insertMap[$insertName])) {
+                $itemInsert = new PledgedItemInsert();
+                $itemInsert->setInsert($insertMap[$insertName]);
+                $itemInsert->setPledgedItem($item);
+                if ($insertWeight !== null)      { $itemInsert->setWeight($insertWeight); }
+                if ($insertDescription !== null) { $itemInsert->setDescription($insertDescription); }
+                $item->addItemInsert($itemInsert);
+            }
 
             $this->em->persist($item);
         }

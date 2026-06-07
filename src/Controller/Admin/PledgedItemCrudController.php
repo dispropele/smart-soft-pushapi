@@ -21,6 +21,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
@@ -161,6 +162,12 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             ])
             ->onlyOnForms();
 
+        yield CollectionField::new('itemInserts', 'Вставки изделия')
+            ->useEntryCrudForm(PledgedItemInsertCrudController::class)
+            ->allowAdd()->allowDelete()
+            ->setEntryIsComplex(true)
+            ->onlyOnForms();
+
         yield MoneyField::new('estimatedValue', 'Оценочная стоимость')
             ->setCurrency('RUB')->setStoredAsCents(false)->onlyOnForms()
             ->setFormTypeOptions(['disabled' => $isUnderActiveLoan]);
@@ -170,12 +177,6 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
 
         if (!$isCreate) {
             yield AssociationField::new('metalColor', 'Цвет металла')->autocomplete()->onlyOnForms();
-            yield AssociationField::new('insert', 'Вставка')->autocomplete()->onlyOnForms();
-            yield NumberField::new('insertWeight', 'Вес вставки (г)')
-                ->setNumDecimals(2)
-                ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]])
-                ->onlyOnForms();
-            yield TextField::new('insertDescription', 'Описание вставки')->onlyOnForms();
             yield TextField::new('size', 'Размер')
                 ->setRequired(false)
                 ->setHelp('Кольца в мм (17.5), цепи в см (50 см)')
@@ -259,11 +260,11 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
             ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]])
             ->setRequired(true);
 
-        yield AssociationField::new('insert', 'Вставка')->autocomplete();
-
-        yield NumberField::new('insertWeight', 'Вес вставки (г)')
-            ->setNumDecimals(2)
-            ->setFormTypeOptions(['attr' => ['step' => '0.01', 'min' => 0]]);
+        yield CollectionField::new('itemInserts', 'Вставки изделия')
+            ->useEntryCrudForm(PledgedItemInsertCrudController::class)
+            ->allowAdd()->allowDelete()
+            ->setEntryIsComplex(true)
+            ->onlyOnForms();
 
         yield NumberField::new('scrapWeight', 'Вес лома (г)')
             ->setNumDecimals(2)
@@ -401,7 +402,7 @@ class PledgedItemCrudController extends AbstractProtectedCrudController
     }
 
     /**
-     * Проверяет вес лома и вес вставки против веса изделия.
+     * Синхронизирует категорию предмета на основе вида изделия.
      */
     private function syncCategoryFromGoodType(PledgedItem $item): void
     {

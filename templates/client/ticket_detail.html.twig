@@ -172,10 +172,17 @@
                                             <p class="text-[#333] text-sm mt-1">{{ item.metalColor.name }}</p>
                                         </div>
                                     {% endif %}
-                                    {% if item.insert %}
-                                        <div>
-                                            <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вставка</p>
-                                            <p class="text-[#333] text-sm mt-1">{{ item.insert.name }}</p>
+                                    {% if item.itemInserts|length > 0 %}
+                                        <div class="md:col-span-2">
+                                            <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Вставки</p>
+                                            {% for ins in item.itemInserts %}
+                                                <p class="text-[#333] text-sm mt-1">
+                                                    {{ ins.insert.name }}{% if ins.weight %} — {{ ins.weight }} г{% endif %}{% if ins.quantity > 1 %} ×{{ ins.quantity }}{% endif %}
+                                                </p>
+                                                {% if ins.description %}
+                                                    <p class="text-[#555] text-sm mt-1">{{ ins.description }}</p>
+                                                {% endif %}
+                                            {% endfor %}
                                         </div>
                                     {% endif %}
                                     {% if item.itemWeight %}
@@ -196,12 +203,6 @@
                                     </div>
                                 </div>
                                 {# 4.6. Детализация вставки #}
-                                {% if item.insertDescription %}
-                                    <div class="pt-3 border-t border-[#e1f0f5]">
-                                        <p class="text-xs font-bold text-[#7a9fb5] uppercase tracking-wide">Описание вставки</p>
-                                        <p class="text-[#555] text-sm mt-1">{{ item.insertDescription }}</p>
-                                    </div>
-                                {% endif %}
                             </div>
                         </div>
                     {% endfor %}

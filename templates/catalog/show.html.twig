@@ -86,24 +86,21 @@
                     </tr>
                     {% endif %}
 
-                    {% if item.insert %}
+                    {% if item.itemInserts|length > 0 %}
                     <tr class="border-b border-[#f0f4f8]">
-                        <td class="px-5 py-3 text-[#7a9fb5]">Вставка</td>
-                        <td class="px-5 py-3 text-[#333] font-medium">{{ item.insert.name }}</td>
-                    </tr>
-                    {% endif %}
-
-                    {% if item.insertWeight %}
-                    <tr class="border-b border-[#f0f4f8]">
-                        <td class="px-5 py-3 text-[#7a9fb5]">Вес вставок</td>
-                        <td class="px-5 py-3 text-[#333] font-medium">{{ item.insertWeight }} ct (карат)</td>
-                    </tr>
-                    {% endif %}
-
-                    {% if item.insertDescription %}
-                    <tr class="border-b border-[#f0f4f8]">
-                        <td class="px-5 py-3 text-[#7a9fb5] align-top">Описание вставки</td>
-                        <td class="px-5 py-3 text-[#333]">{{ item.insertDescription }}</td>
+                        <td class="px-5 py-3 text-[#7a9fb5] align-top">Вставки</td>
+                        <td class="px-5 py-3 text-[#333] font-medium">
+                            <ul class="list-disc ml-5">
+                                {% for ins in item.itemInserts %}
+                                    <li class="mb-2">
+                                        {{ ins.insert.name }}{% if ins.weight %} — {{ ins.weight }} г{% endif %}{% if ins.quantity > 1 %} ×{{ ins.quantity }}{% endif %}
+                                        {% if ins.description %}
+                                            <div class="text-sm text-[#555] mt-1">{{ ins.description }}</div>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </td>
                     </tr>
                     {% endif %}
 

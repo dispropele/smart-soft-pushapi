@@ -14,7 +14,7 @@
                         <th>Вид</th>
                         <th>Металл</th>
                         <th>Вес (г)</th>
-                        <th>Вставка</th>
+                        <th>Вставки</th>
                         <th>Цвет</th>
                         <th>Вес лома</th>
                         <th>Оценка</th>
@@ -40,11 +40,13 @@
                             <td>{{ item.metalStandard ?? '—' }}</td>
                             <td>{{ item.itemWeight ? item.itemWeight ~ ' г' : '—' }}</td>
                             <td>
-                                {% if item.insert %}
-                                    {{ item.insert }}
-                                    {% if item.insertWeight %}
-                                        ({{ item.insertWeight }} г)
-                                    {% endif %}
+                                {% if item.itemInserts|length > 0 %}
+                                    {% for ins in item.itemInserts %}
+                                        {{ ins.insert }}
+                                        {% if ins.weight %}( {{ ins.weight }} г){% endif %}
+                                        {% if ins.quantity > 1 %} ×{{ ins.quantity }}{% endif %}
+                                        {% if not loop.last %}<br>{% endif %}
+                                    {% endfor %}
                                 {% else %}
                                     —
                                 {% endif %}
